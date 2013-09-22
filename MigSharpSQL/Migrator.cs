@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 namespace MigSharpSQL
 {
@@ -12,6 +12,9 @@ namespace MigSharpSQL
     /// </summary>
     public class Migrator
     {
+        // yyyy-MM-dd_HH-mm_up.sql
+        private readonly Regex scriptFilenamePattern = new Regex(@"(\d{4}-\d{2}-\d{2}_\d{2}-\d{2})_(up|down)\.sql",RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         /// <summary>
         /// 
         /// </summary>
@@ -89,24 +92,83 @@ namespace MigSharpSQL
 
             if (migrationsDirectory == null)
             {
-                throw new ArgumentNullException("migrationsDir");
+                throw new ArgumentNullException("migrationsDirectory");
             }
 
             Provider = DbProviderFactory.GetProvider(providerName);
             ProviderFactory = DbProviderFactories.GetFactory(ProviderName);
             ConnectionString = connectionString;
             MigrationsDirectory = migrationsDirectory;
+            Migrations = new SortedDictionary<string, Migration>();
 
-            LoadMigrations(migrationsDirectory);
+            LoadMigrations();
         }
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="migrationsDirectory"></param>
-        private void LoadMigrations(string migrationsDirectory)
+        private void LoadMigrations()
         {
-            throw new NotImplementedException();
+            DirectoryInfo dirInfo = new DirectoryInfo(MigrationsDirectory);
+
+            Migrations.Clear();
+
+            foreach (FileInfo fileInfo in dirInfo.EnumerateFiles())
+            {
+                Match match = scriptFilenamePattern.Match(fileInfo.Name);
+
+                if (match.Success)
+                {
+                    string migrationName = match.Groups[1].Value;
+
+                    Migration migration = GetMigration(migrationName);
+
+                    if (string.Equals("up",match.Groups[2].Value,StringComparison.OrdinalIgnoreCase))
+                    {
+                        migration.UpScriptFullPath = fileInfo.FullName;
+                    }
+                    else
+                    {
+                        migration.DownScriptFullPath = fileInfo.FullName;
+                    }
+                }
+            }
+
+            foreach (Migration migration in Migrations.Values)
+            {
+                if (migration.UpScriptFullPath == null || migration.DownScriptFullPath == null)
+                {
+                    throw new InvalidDataException(
+                        string.Format(
+                            "Migration script `{0}_{1}.sql` is absent.",
+                            migration.Name,
+                            migration.UpScriptFullPath == null ? "up": "down")
+                        );
+                }
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="migrationName"></param>
+        /// <returns></returns>
+        private Migration GetMigration(string migrationName)
+        {
+            Migration migration;
+
+            if (!Migrations.ContainsKey(migrationName))
+            {
+                migration = new Migration(migrationName);
+                Migrations.Add(migration.Name, migration);
+            }
+            else
+            {
+                migration = Migrations[migrationName];
+            }
+
+            return migration;
         }
 
         /// <summary>
@@ -153,7 +215,28 @@ namespace MigSharpSQL
         /// <param name="p"></param>
         private void Down(DbConnection connection, string[] keys, int first, int last)
         {
-            throw new NotImplementedException();
+            if (Provider.SupportsTransactions)
+            {
+                for (int i = first; i >= last; i--)
+                {
+                    using (DbTransaction transaction = connection.BeginTransaction())
+                    {
+                        RunScript(transaction, connection, Migrations[keys[i]].DownScriptFullPath);
+                        Provider.SetState(connection, transaction);
+
+                        transaction.Commit();
+                    }
+                }
+            }
+            else
+            {
+                for (int i = first; i >= last; i--)
+                {
+                    RunScript(null, connection, Migrations[keys[i]].DownScriptFullPath);                    
+
+                    Provider.SetState(connection, null);
+                }
+            }
         }
 
         /// <summary>
@@ -165,7 +248,42 @@ namespace MigSharpSQL
         /// <param name="indexState"></param>
         private void Up(DbConnection connection, string[] keys, int first, int last)
         {
-            throw new NotImplementedException();
+            if (Provider.SupportsTransactions)
+            {
+                for (int i = first; i <= last; i++)
+                {
+                    using (DbTransaction transaction = connection.BeginTransaction())
+                    {
+                        RunScript(transaction, connection, Migrations[keys[i]].UpScriptFullPath);
+                        Provider.SetState(connection, transaction);
+
+                        transaction.Commit();
+                    }
+                }
+            }
+            else
+            {
+                for (int i = first; i <= last; i++)
+                {
+                    RunScript(null, connection, Migrations[keys[i]].UpScriptFullPath);
+
+                    Provider.SetState(connection, null);
+                }
+            }
+        }
+
+        private void RunScript(DbTransaction transaction, DbConnection connection, string scriptFullPath)
+        {
+            string script = new FileInfo(scriptFullPath).OpenText().ReadToEnd();
+
+            using (DbCommand command = connection.CreateCommand())
+            {
+                command.Connection = connection;
+                command.Transaction = transaction;
+
+                command.CommandText = script;
+                command.ExecuteNonQuery();
+            }
         }
 
         /// <summary>

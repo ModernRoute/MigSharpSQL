@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MigSharpSQL
 {
@@ -14,10 +10,19 @@ namespace MigSharpSQL
         /// <summary>
         /// 
         /// </summary>
-        public string UpScriptFullPath
+        public string Name
         {
             get;
             private set;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public string UpScriptFullPath
+        {
+            get;
+            set;
         }
 
         /// <summary>
@@ -26,23 +31,21 @@ namespace MigSharpSQL
         public string DownScriptFullPath
         {
             get;
-            private set;
+            set;
         }
 
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="upScriptFullPath"></param>
-        /// <param name="downScriptFullPath"></param>
-        public Migration(string upScriptFullPath, string downScriptFullPath)
+        /// <param name="name"></param>
+        public Migration(string name)
         {
-            if (upScriptFullPath == null)
+            if (name == null)
             {
-                throw new ArgumentNullException("upScriptFullPath");
+                throw new ArgumentNullException("name");
             }
 
-            UpScriptFullPath = UpScriptFullPath;
-            DownScriptFullPath = DownScriptFullPath;
+            Name = name;
         }
     }
 }

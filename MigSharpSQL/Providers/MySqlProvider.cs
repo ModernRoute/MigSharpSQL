@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Data.Common;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MigSharpSQL.Providers
 {
@@ -22,7 +18,7 @@ namespace MigSharpSQL.Providers
             throw new NotImplementedException();
         }
 
-        public void SetState(DbConnection connection)
+        public void SetState(DbConnection connection, DbTransaction transaction)
         {
             throw new NotImplementedException();
         }

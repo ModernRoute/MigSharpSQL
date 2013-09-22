@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data.Common;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Data.Common;
 
 namespace MigSharpSQL
 {
@@ -21,6 +16,7 @@ namespace MigSharpSQL
         /// 
         /// </summary>
         /// <param name="connection"></param>
+        /// <param name="transaction"></param>
         /// <returns></returns>
         string GetState(DbConnection connection);
 
@@ -28,7 +24,8 @@ namespace MigSharpSQL
         /// 
         /// </summary>
         /// <param name="connection"></param>
-        void SetState(DbConnection connection);
+        /// <param name="transaction"></param>
+        void SetState(DbConnection connection, DbTransaction transaction);
 
         /// <summary>
         /// 
