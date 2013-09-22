@@ -23,9 +23,10 @@ namespace MigSharpSQL
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="connection"></param>
+        /// <param name="connection"></param>        
         /// <param name="transaction"></param>
-        void SetState(DbConnection connection, DbTransaction transaction);
+        /// <param name="state"></param>
+        void SetState(DbConnection connection, DbTransaction transaction, string state);
 
         /// <summary>
         /// 

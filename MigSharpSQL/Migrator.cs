@@ -1,8 +1,10 @@
-﻿using System;
+﻿using NLog;
+using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace MigSharpSQL
@@ -12,6 +14,8 @@ namespace MigSharpSQL
     /// </summary>
     public class Migrator
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+
         // yyyy-MM-dd_HH-mm_up.sql
         private readonly Regex scriptFilenamePattern = new Regex(@"(\d{4}-\d{2}-\d{2}_\d{2}-\d{2})_(up|down)\.sql",RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
@@ -177,6 +181,8 @@ namespace MigSharpSQL
         /// <param name="state"></param>
         public void MigrateTo(string state)
         {
+            logger.Info("Migration started");
+
             int indexState;
             string[] keys = Migrations.Keys.ToArray();
 
@@ -184,7 +190,13 @@ namespace MigSharpSQL
 
             using (DbConnection connection = OpenConnection())
             {
-                int indexCurrentState = GetStateIndex(GetCurrentState(connection), keys, "Database state `{0}` is unknown");
+                logger.Info("Figuring out the current database state");
+
+                string currentState = GetCurrentState(connection);
+
+                logger.Info("The current database state: {0}", currentState == null ? "initial" : currentState); // TODO: initial
+
+                int indexCurrentState = GetStateIndex(currentState, keys, "The database state `{0}` is unknown");
 
                 // ok, everything alright, let's migrate
 
@@ -195,15 +207,18 @@ namespace MigSharpSQL
                 {
                     Up(connection, keys, indexCurrentState + 1, indexState);
                 }
-
                 // We need to down
                 else if (diff < 0)
                 {
                     Down(connection, keys, indexCurrentState, indexState + 1);
                 }
-
-                // Otherwise the current state is already approached
+                else
+                {
+                    logger.Info("The database is already at specified state. No action required");
+                }
             }
+
+            logger.Info("Migration completed successfully");
         }
 
         /// <summary>
@@ -215,6 +230,8 @@ namespace MigSharpSQL
         /// <param name="p"></param>
         private void Down(DbConnection connection, string[] keys, int first, int last)
         {
+            logger.Info("Performing the downgrading scripts {0}...{1} has been started", keys[first], keys[last]);
+
             if (Provider.SupportsTransactions)
             {
                 for (int i = first; i >= last; i--)
@@ -222,7 +239,7 @@ namespace MigSharpSQL
                     using (DbTransaction transaction = connection.BeginTransaction())
                     {
                         RunScript(transaction, connection, Migrations[keys[i]].DownScriptFullPath);
-                        Provider.SetState(connection, transaction);
+                        Provider.SetState(connection, transaction, keys[i]);
 
                         transaction.Commit();
                     }
@@ -232,9 +249,9 @@ namespace MigSharpSQL
             {
                 for (int i = first; i >= last; i--)
                 {
-                    RunScript(null, connection, Migrations[keys[i]].DownScriptFullPath);                    
+                    RunScript(null, connection, Migrations[keys[i]].DownScriptFullPath);
 
-                    Provider.SetState(connection, null);
+                    Provider.SetState(connection, null, keys[i]);
                 }
             }
         }
@@ -248,6 +265,8 @@ namespace MigSharpSQL
         /// <param name="indexState"></param>
         private void Up(DbConnection connection, string[] keys, int first, int last)
         {
+            logger.Info("Performing the upgrading scripts {0}...{1} has been started", keys[first], keys[last]);
+
             if (Provider.SupportsTransactions)
             {
                 for (int i = first; i <= last; i++)
@@ -255,7 +274,7 @@ namespace MigSharpSQL
                     using (DbTransaction transaction = connection.BeginTransaction())
                     {
                         RunScript(transaction, connection, Migrations[keys[i]].UpScriptFullPath);
-                        Provider.SetState(connection, transaction);
+                        Provider.SetState(connection, transaction, keys[i]);
 
                         transaction.Commit();
                     }
@@ -267,14 +286,18 @@ namespace MigSharpSQL
                 {
                     RunScript(null, connection, Migrations[keys[i]].UpScriptFullPath);
 
-                    Provider.SetState(connection, null);
+                    Provider.SetState(connection, null, keys[i]);
                 }
             }
         }
 
         private void RunScript(DbTransaction transaction, DbConnection connection, string scriptFullPath)
         {
-            string script = new FileInfo(scriptFullPath).OpenText().ReadToEnd();
+            FileInfo fileInfo = new FileInfo(scriptFullPath);
+
+            logger.Info("Running script: {0}", fileInfo.Name);
+
+            string script = fileInfo.OpenText().ReadToEnd();
 
             using (DbCommand command = connection.CreateCommand())
             {
