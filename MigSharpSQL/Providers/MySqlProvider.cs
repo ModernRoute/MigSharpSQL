@@ -1,51 +1,57 @@
 ﻿using System;
-using System.Data.Common;
+using System.Data;
+using System.Reflection;
 
 namespace MigSharpSQL.Providers
 {
     internal class MySqlProvider : IDbProvider
     {
-        public string Name
+        private const string mySqlAssemblyName = "MySql.Data.dll";
+        private const string mySqlConnectionTypeName = "MySql.Data.MySqlClient.MySqlConnection";
+
+        private const string viewExistsQuery = "SELECT COUNT(*) FROM information_schema.VIEWS " + 
+            "AS info WHERE info.TABLE_SCHEMA = DATABASE() AND info.TABLE_NAME = '__MigrationState'";
+        private const string getStateQuery = "SELECT `state` FROM `__MigrationState`";        
+        private const string setStateQuery = "CREATE OR REPLACE VIEW `__MigrationState` " + 
+            "AS SELECT @state AS `state`";
+        private const string stateParamName = "@state";
+
+        public string GetState(IDbConnection connection)
         {
-            get
+            using (IDbCommand command = connection.CreateCommand())
             {
-                return "MySql.Data.MySqlClient";
-            }
-        }
+                command.CommandText = viewExistsQuery;
 
-        public string GetState(DbConnection connection)
-        {
-            using (DbCommand command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT COUNT(*) FROM information_schema.VIEWS as info WHERE info.TABLE_SCHEMA = DATABASE() AND info.TABLE_NAME = '__MigrationState'";
+                bool viewExists = false;
 
-                bool procedureExists = false;
-
-                using (DbDataReader reader = command.ExecuteReader())
+                using (IDataReader reader = command.ExecuteReader())
                 {
                     while (reader.Read())
                     {
-                        procedureExists = reader.GetInt32(0) != 0;
+                        viewExists = reader.GetInt32(0) != 0;
                     }
                 }
 
-                if (!procedureExists)
+                if (!viewExists)
                 {
                     return null;
                 }
             }
 
-            using (DbCommand command = connection.CreateCommand())
+            using (IDbCommand command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT `state` FROM `__MigrationState`";
+                command.CommandText = getStateQuery;
 
-                using (DbDataReader reader = command.ExecuteReader())
+                using (IDataReader reader = command.ExecuteReader())
                 {
                     string state = null;
 
                     while (reader.Read())
                     {
-                        state = reader.GetString(0);
+                        if (!reader.IsDBNull(0))
+                        {
+                            state = reader.GetString(0);
+                        }
                     }
 
                     return state;
@@ -53,19 +59,27 @@ namespace MigSharpSQL.Providers
             }
         }
 
-        public void SetState(DbConnection connection, DbTransaction transaction, string state)
+        public void SetState(IDbConnection connection, IDbTransaction transaction, string state)
         {
-            using (DbCommand command = connection.CreateCommand())
+            using (IDbCommand command = connection.CreateCommand())
             {   
                 command.Connection = connection;
                 command.Transaction = transaction;
 
-                command.CommandText = "CREATE OR REPLACE VIEW `__MigrationState` AS SELECT @p AS `state`";
+                command.CommandText = setStateQuery;
 
-                DbParameter parameter = command.CreateParameter();
-                parameter.ParameterName = "@p";
+                IDbDataParameter parameter = command.CreateParameter();
+                parameter.ParameterName = stateParamName;
                 parameter.DbType = System.Data.DbType.String;
-                parameter.Value = state;
+
+                if (state == null)
+                {
+                    parameter.Value = DBNull.Value;
+                }
+                else
+                {
+                    parameter.Value = state;
+                }
 
                 command.Parameters.Add(parameter);
 
@@ -78,6 +92,24 @@ namespace MigSharpSQL.Providers
         public bool SupportsTransactions
         {
             get { return true; }
+        }
+
+        public IDbConnection CreateConnection(string connectionString)
+        {
+            return (IDbConnection)Activator.CreateInstance(mySqlConnectionType, connectionString);
+        }
+
+        private Type mySqlConnectionType;
+
+        public void Load()
+        {
+            Assembly assembly = Assembly.LoadFrom(mySqlAssemblyName);
+            mySqlConnectionType = assembly.GetType(mySqlConnectionTypeName);
+        }
+
+        public string Name
+        {
+            get { return "MySql"; }
         }
     }
 }

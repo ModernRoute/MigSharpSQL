@@ -1,6 +1,7 @@
 ﻿using NLog;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.Common;
 using System.IO;
 using System.Linq;
@@ -31,27 +32,7 @@ namespace MigSharpSQL
         /// <summary>
         /// 
         /// </summary>
-        public string ProviderName
-        {
-            get
-            {
-                return Provider.Name;
-            }
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
         private SortedDictionary<string,Migration> Migrations
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        private System.Data.Common.DbProviderFactory ProviderFactory
         {
             get;
             set;
@@ -100,7 +81,7 @@ namespace MigSharpSQL
             }
 
             Provider = DbProviderFactory.GetProvider(providerName);
-            ProviderFactory = DbProviderFactories.GetFactory(ProviderName);
+            Provider.Load();
             ConnectionString = connectionString;
             MigrationsDirectory = migrationsDirectory;
             Migrations = new SortedDictionary<string, Migration>();
@@ -188,7 +169,7 @@ namespace MigSharpSQL
 
             indexState = GetStateIndex(state, keys, "The state `{0}` does not exist");
 
-            using (DbConnection connection = OpenConnection())
+            using (IDbConnection connection = OpenConnection())
             {
                 logger.Info("Figuring out the current database state");
 
@@ -228,7 +209,7 @@ namespace MigSharpSQL
         /// <param name="keys"></param>
         /// <param name="indexCurrentState"></param>
         /// <param name="p"></param>
-        private void Down(DbConnection connection, string[] keys, int first, int last)
+        private void Down(IDbConnection connection, string[] keys, int first, int last)
         {
             logger.Info("Performing the downgrading scripts {0}...{1} has been started", keys[first], keys[last]);
 
@@ -236,12 +217,18 @@ namespace MigSharpSQL
             {
                 for (int i = first; i >= last; i--)
                 {
-                    using (DbTransaction transaction = connection.BeginTransaction())
+                    using (IDbTransaction transaction = connection.BeginTransaction())
                     {
-                        RunScript(transaction, connection, Migrations[keys[i]].DownScriptFullPath);
-                        Provider.SetState(connection, transaction, keys[i]);
-
-                        transaction.Commit();
+                        try
+                        {
+                            Down(connection, keys, i, transaction);
+                            transaction.Commit();
+                        }
+                        catch (DbException)
+                        {
+                            transaction.Rollback();
+                            throw;
+                        }
                     }
                 }
             }
@@ -249,9 +236,7 @@ namespace MigSharpSQL
             {
                 for (int i = first; i >= last; i--)
                 {
-                    RunScript(null, connection, Migrations[keys[i]].DownScriptFullPath);
-
-                    Provider.SetState(connection, null, keys[i]);
+                    Down(connection, keys, i, null);
                 }
             }
         }
@@ -261,9 +246,30 @@ namespace MigSharpSQL
         /// </summary>
         /// <param name="connection"></param>
         /// <param name="keys"></param>
+        /// <param name="i"></param>
+        /// <param name="transaction"></param>
+        private void Down(IDbConnection connection, string[] keys, int i, IDbTransaction transaction)
+        {
+            RunScript(transaction, connection, Migrations[keys[i]].DownScriptFullPath);
+
+            if (i > 0)
+            {
+                Provider.SetState(connection, transaction, keys[i - 1]);
+            }
+            else
+            {
+                Provider.SetState(connection, transaction, null);
+            }            
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="keys"></param>
         /// <param name="p"></param>
         /// <param name="indexState"></param>
-        private void Up(DbConnection connection, string[] keys, int first, int last)
+        private void Up(IDbConnection connection, string[] keys, int first, int last)
         {
             logger.Info("Performing the upgrading scripts {0}...{1} has been started", keys[first], keys[last]);
 
@@ -271,12 +277,19 @@ namespace MigSharpSQL
             {
                 for (int i = first; i <= last; i++)
                 {
-                    using (DbTransaction transaction = connection.BeginTransaction())
+                    using (IDbTransaction transaction = connection.BeginTransaction())
                     {
-                        RunScript(transaction, connection, Migrations[keys[i]].UpScriptFullPath);
-                        Provider.SetState(connection, transaction, keys[i]);
+                        try
+                        {
+                            Up(connection, keys, i, transaction);
 
-                        transaction.Commit();
+                            transaction.Commit();
+                        }
+                        catch (DbException)
+                        {
+                            transaction.Rollback();
+                            throw;
+                        }
                     }
                 }
             }
@@ -284,14 +297,31 @@ namespace MigSharpSQL
             {
                 for (int i = first; i <= last; i++)
                 {
-                    RunScript(null, connection, Migrations[keys[i]].UpScriptFullPath);
-
-                    Provider.SetState(connection, null, keys[i]);
+                    Up(connection, keys, i, null);
                 }
             }
         }
 
-        private void RunScript(DbTransaction transaction, DbConnection connection, string scriptFullPath)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="keys"></param>
+        /// <param name="i"></param>
+        /// <param name="transaction"></param>
+        private void Up(IDbConnection connection, string[] keys, int i, IDbTransaction transaction)
+        {
+            RunScript(transaction, connection, Migrations[keys[i]].UpScriptFullPath);
+            Provider.SetState(connection, transaction, keys[i]);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="transaction"></param>
+        /// <param name="connection"></param>
+        /// <param name="scriptFullPath"></param>
+        private void RunScript(IDbTransaction transaction, IDbConnection connection, string scriptFullPath)
         {
             FileInfo fileInfo = new FileInfo(scriptFullPath);
 
@@ -299,7 +329,7 @@ namespace MigSharpSQL
 
             string script = fileInfo.OpenText().ReadToEnd();
 
-            using (DbCommand command = connection.CreateCommand())
+            using (IDbCommand command = connection.CreateCommand())
             {
                 command.Connection = connection;
                 command.Transaction = transaction;
@@ -341,10 +371,9 @@ namespace MigSharpSQL
         /// 
         /// </summary>
         /// <returns></returns>
-        private DbConnection OpenConnection()
+        private IDbConnection OpenConnection()
         {
-            DbConnection connection = ProviderFactory.CreateConnection();
-            connection.ConnectionString = ConnectionString;
+            IDbConnection connection = Provider.CreateConnection(ConnectionString);
             connection.Open();
 
             return connection;
@@ -371,7 +400,7 @@ namespace MigSharpSQL
         /// 
         /// </summary>
         /// <returns></returns>
-        private string GetCurrentState(DbConnection connection)
+        private string GetCurrentState(IDbConnection connection)
         {
             return Provider.GetState(connection);
         }
@@ -382,7 +411,7 @@ namespace MigSharpSQL
         /// <returns></returns>
         public string GetCurrentState()
         {
-            using (DbConnection connection = OpenConnection())
+            using (IDbConnection connection = OpenConnection())
             {
                 return GetCurrentState(connection);
             }
