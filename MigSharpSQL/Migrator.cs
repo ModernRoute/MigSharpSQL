@@ -173,29 +173,26 @@ namespace MigSharpSQL
             {
                 logger.Info("Figuring out the current database state");
 
-                string currentState = GetCurrentState(connection);
+                int currentSubstate;
+                string currentState = GetCurrentState(connection, out currentSubstate);
 
-                logger.Info("The current database state: {0}", currentState == null ? "initial" : currentState); // TODO: initial
+                logger.Info("The current database state is `{0}`. The substate is {1}", GetHumanStateName(currentState), currentSubstate);
 
-                int indexCurrentState = GetStateIndex(currentState, keys, "The database state `{0}` is unknown");
+                int indexCurrentState = GetStateIndex(currentState, keys, "Unknown database state `{0}`");
 
                 // ok, everything alright, let's migrate
 
                 int diff = indexState - indexCurrentState;
 
                 // We need to up 
-                if (diff > 0)
+                if (diff >= 0)
                 {
-                    Up(connection, keys, indexCurrentState + 1, indexState);
+                    Up(connection, keys, indexCurrentState + 1, indexState, currentSubstate);
                 }
                 // We need to down
-                else if (diff < 0)
-                {
-                    Down(connection, keys, indexCurrentState, indexState + 1);
-                }
                 else
                 {
-                    logger.Info("The database is already at specified state. No action required");
+                    Down(connection, keys, indexCurrentState, indexState + 1, currentSubstate);
                 }
             }
 
@@ -207,37 +204,43 @@ namespace MigSharpSQL
         /// </summary>
         /// <param name="connection"></param>
         /// <param name="keys"></param>
-        /// <param name="indexCurrentState"></param>
-        /// <param name="p"></param>
-        private void Down(IDbConnection connection, string[] keys, int first, int last)
+        /// <param name="first"></param>
+        /// <param name="last"></param>
+        /// <param name="currentSubstate"></param>
+        private void Down(IDbConnection connection, string[] keys, int first, int last, int currentSubstate)
         {
+            string[] steps = LoadScript(Migrations[keys[first]].DownScriptFullPath);
+
+            if (currentSubstate >= steps.Length || currentSubstate < 0)
+            {
+                throw new InvalidOperationException(string.Format(
+                    "There are only {0} substate(s) available for state `{1}`, but database stays in {2} substate",
+                    steps.Length, keys[first], currentSubstate));
+            }
+
             logger.Info("Performing the downgrading scripts {0}...{1} has been started", keys[first], keys[last]);
 
-            if (Provider.SupportsTransactions)
+            for (int j = currentSubstate; j < steps.Length - 1; j++)
             {
-                for (int i = first; i >= last; i--)
-                {
-                    using (IDbTransaction transaction = connection.BeginTransaction())
-                    {
-                        try
-                        {
-                            Down(connection, keys, i, transaction);
-                            transaction.Commit();
-                        }
-                        catch (DbException)
-                        {
-                            transaction.Rollback();
-                            throw;
-                        }
-                    }
-                }
+                DoStep(connection, steps[j], keys[first], j);
             }
-            else
+
+            string newState = first > 0 ? keys[first - 1] : null;
+
+            DoStep(connection, steps[steps.Length - 1], newState, 0);
+
+            for (int i = first; i >= last; i--)
             {
-                for (int i = first; i >= last; i--)
+                steps = LoadScript(Migrations[keys[i]].DownScriptFullPath);
+                                
+                for (int j = 0; j < steps.Length - 1; j++)
                 {
-                    Down(connection, keys, i, null);
+                    DoStep(connection, steps[j], keys[i], j);
                 }
+
+                newState = i > 0 ? keys[i] : null;
+
+                DoStep(connection, steps[steps.Length - 1], newState, 0);
             }
         }
 
@@ -246,59 +249,73 @@ namespace MigSharpSQL
         /// </summary>
         /// <param name="connection"></param>
         /// <param name="keys"></param>
-        /// <param name="i"></param>
-        /// <param name="transaction"></param>
-        private void Down(IDbConnection connection, string[] keys, int i, IDbTransaction transaction)
+        /// <param name="first"></param>
+        /// <param name="last"></param>
+        /// <param name="currentSubstate"></param>
+        private void Up(IDbConnection connection, string[] keys, int first, int last, int currentSubstate)
         {
-            RunScript(transaction, connection, Migrations[keys[i]].DownScriptFullPath);
+            string[] steps = LoadScript(Migrations[keys[first]].UpScriptFullPath);
 
-            if (i > 0)
+            if (first == last && currentSubstate == 0)
             {
-                Provider.SetState(connection, transaction, keys[i - 1]);
+                logger.Info("The database is already at specified state. No action required");
+                return;
             }
-            else
-            {
-                Provider.SetState(connection, transaction, null);
-            }            
-        }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="connection"></param>
-        /// <param name="keys"></param>
-        /// <param name="p"></param>
-        /// <param name="indexState"></param>
-        private void Up(IDbConnection connection, string[] keys, int first, int last)
-        {
+            if (currentSubstate >= steps.Length || currentSubstate < 0)
+            {
+                throw new InvalidOperationException(string.Format(
+                    "There are only {0} substate(s) available for state `{1}`, but database stays in {2} substate", 
+                    steps.Length, keys[first], currentSubstate));
+            }
+
             logger.Info("Performing the upgrading scripts {0}...{1} has been started", keys[first], keys[last]);
 
+            for (int j = steps.Length - currentSubstate; j < steps.Length; j++)
+            {
+                DoStep(connection, steps[j], keys[first], steps.Length - 1 - j);
+            }
+
+            for (int i = first + 1; i <= last; i++)
+            {
+                steps = LoadScript(Migrations[keys[i]].UpScriptFullPath);
+
+                for (int j = 0; j < steps.Length; j++)
+                {
+                    DoStep(connection, steps[j], keys[i], steps.Length - 1 - j);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="stepBody"></param>
+        /// <param name="newState"></param>
+        /// <param name="substateNum"></param>
+        private void DoStep(IDbConnection connection, string stepBody, string newState, int substateNum)
+        {
             if (Provider.SupportsTransactions)
             {
-                for (int i = first; i <= last; i++)
+                using (IDbTransaction transaction = connection.BeginTransaction())
                 {
-                    using (IDbTransaction transaction = connection.BeginTransaction())
+                    try
                     {
-                        try
-                        {
-                            Up(connection, keys, i, transaction);
+                        RunStep(connection, transaction, stepBody, newState, substateNum);
 
-                            transaction.Commit();
-                        }
-                        catch (DbException)
-                        {
-                            transaction.Rollback();
-                            throw;
-                        }
+                        transaction.Commit();
+                    }
+                    catch (DbException)
+                    {
+                        transaction.Rollback();
+                        throw;
                     }
                 }
             }
             else
             {
-                for (int i = first; i <= last; i++)
-                {
-                    Up(connection, keys, i, null);
-                }
+                RunStep(connection, null, stepBody, newState, substateNum);
             }
         }
 
@@ -306,37 +323,33 @@ namespace MigSharpSQL
         /// 
         /// </summary>
         /// <param name="connection"></param>
-        /// <param name="keys"></param>
-        /// <param name="i"></param>
         /// <param name="transaction"></param>
-        private void Up(IDbConnection connection, string[] keys, int i, IDbTransaction transaction)
+        /// <param name="stepBody"></param>
+        /// <param name="newState"></param>
+        /// <param name="substateNum"></param>
+        private void RunStep(IDbConnection connection, IDbTransaction transaction, string stepBody, string newState, int substateNum)
         {
-            RunScript(transaction, connection, Migrations[keys[i]].UpScriptFullPath);
-            Provider.SetState(connection, transaction, keys[i]);
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="transaction"></param>
-        /// <param name="connection"></param>
-        /// <param name="scriptFullPath"></param>
-        private void RunScript(IDbTransaction transaction, IDbConnection connection, string scriptFullPath)
-        {
-            FileInfo fileInfo = new FileInfo(scriptFullPath);
-
-            logger.Info("Running script: {0}", fileInfo.Name);
-
-            string script = fileInfo.OpenText().ReadToEnd();
+            Provider.SetState(connection, transaction, newState, substateNum);
 
             using (IDbCommand command = connection.CreateCommand())
             {
                 command.Connection = connection;
                 command.Transaction = transaction;
 
-                command.CommandText = script;
+                command.CommandText = stepBody;
                 command.ExecuteNonQuery();
             }
+        }
+
+        private string[] LoadScript(string scriptFullPath)
+        {
+            FileInfo fileInfo = new FileInfo(scriptFullPath);
+
+            logger.Debug("Loading script: {0}", fileInfo.Name);
+            
+            string script = fileInfo.OpenText().ReadToEnd();
+
+            return Regex.Split(script, "--//--$");
         }
 
         /// <summary>
@@ -400,21 +413,31 @@ namespace MigSharpSQL
         /// 
         /// </summary>
         /// <returns></returns>
-        private string GetCurrentState(IDbConnection connection)
+        private string GetCurrentState(IDbConnection connection, out int substate)
         {
-            return Provider.GetState(connection);
+            return Provider.GetState(connection, out substate);
         }
 
         /// <summary>
         /// 
         /// </summary>
         /// <returns></returns>
-        public string GetCurrentState()
+        public string GetCurrentState(out int substate)
         {
             using (IDbConnection connection = OpenConnection())
             {
-                return GetCurrentState(connection);
+                return GetHumanStateName(GetCurrentState(connection, out substate));
             }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="state"></param>
+        /// <returns></returns>
+        private string GetHumanStateName(string state)
+        {
+            return state == null ? "initial" : state;
         }
     }
 }

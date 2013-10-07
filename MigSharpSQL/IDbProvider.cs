@@ -14,7 +14,7 @@ namespace MigSharpSQL
         /// <param name="connection"></param>
         /// <param name="transaction"></param>
         /// <returns></returns>
-        string GetState(IDbConnection connection);
+        string GetState(IDbConnection connection, out int substate);
 
         /// <summary>
         /// 
@@ -22,7 +22,7 @@ namespace MigSharpSQL
         /// <param name="connection"></param>        
         /// <param name="transaction"></param>
         /// <param name="state"></param>
-        void SetState(IDbConnection connection, IDbTransaction transaction, string state);
+        void SetState(IDbConnection connection, IDbTransaction transaction, string state, int substate);
 
         /// <summary>
         /// 

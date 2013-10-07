@@ -11,12 +11,13 @@ namespace MigSharpSQL.Providers
 
         private const string viewExistsQuery = "SELECT COUNT(*) FROM information_schema.VIEWS " + 
             "AS info WHERE info.TABLE_SCHEMA = DATABASE() AND info.TABLE_NAME = '__MigrationState'";
-        private const string getStateQuery = "SELECT `state` FROM `__MigrationState`";        
-        private const string setStateQuery = "CREATE OR REPLACE VIEW `__MigrationState` " + 
-            "AS SELECT @state AS `state`";
+        private const string getStateQuery = "SELECT `state`,`substate` FROM `__MigrationState`";        
+        private const string setStateQuery = "CREATE OR REPLACE VIEW `__MigrationState` " +
+            "AS SELECT @state AS `state`, @substate AS `substate`";
         private const string stateParamName = "@state";
+        private const string substateParamName = "@substate";
 
-        public string GetState(IDbConnection connection)
+        public string GetState(IDbConnection connection, out int substate)
         {
             using (IDbCommand command = connection.CreateCommand())
             {
@@ -34,6 +35,7 @@ namespace MigSharpSQL.Providers
 
                 if (!viewExists)
                 {
+                    substate = 0;
                     return null;
                 }
             }
@@ -45,6 +47,7 @@ namespace MigSharpSQL.Providers
                 using (IDataReader reader = command.ExecuteReader())
                 {
                     string state = null;
+                    substate = 0;
 
                     while (reader.Read())
                     {
@@ -52,6 +55,8 @@ namespace MigSharpSQL.Providers
                         {
                             state = reader.GetString(0);
                         }
+
+                        substate = reader.GetInt32(1);
                     }
 
                     return state;
@@ -59,7 +64,7 @@ namespace MigSharpSQL.Providers
             }
         }
 
-        public void SetState(IDbConnection connection, IDbTransaction transaction, string state)
+        public void SetState(IDbConnection connection, IDbTransaction transaction, string state, int substate)
         {
             using (IDbCommand command = connection.CreateCommand())
             {   
@@ -80,6 +85,13 @@ namespace MigSharpSQL.Providers
                 {
                     parameter.Value = state;
                 }
+
+                command.Parameters.Add(parameter);
+
+                parameter = command.CreateParameter();
+                parameter.ParameterName = substateParamName;
+                parameter.DbType = System.Data.DbType.Int32;
+                parameter.Value = substate;
 
                 command.Parameters.Add(parameter);
 

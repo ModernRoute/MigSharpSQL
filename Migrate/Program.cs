@@ -85,9 +85,10 @@ namespace Migrate
             {
                 Migrator migrator = new Migrator(dictionary["provider"], dictionary["connection-string"], dictionary["directory"]);
 
-                string state = migrator.GetCurrentState();
+                int substate;
+                string state = migrator.GetCurrentState(out substate);
 
-                logger.Info("Current state: {0}", state == null ? "initial" : state);
+                logger.Info("Current state: {0}", state);
 
                 return SuccessExitCode;
             }
