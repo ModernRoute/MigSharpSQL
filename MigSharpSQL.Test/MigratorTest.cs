@@ -13,24 +13,53 @@ namespace MigSharpSQL.Test
     [TestFixture]
     class MigratorTest
     {
-        [SetUp]
-        public void SetUp()
+        private const string mockProviderName = "Mock";
+        private const string mockConnectionString = "nevermind";
+
+        private const string migrationDir = "Migrations";
+
+        private const string mig_ok_5 = "5_ok";
+        private const string mig_no_down_script_4 = "4_no_down_script";
+        private const string mig_no_up_script_4 = "4_no_up_script";
+
+        public MigratorTest()
         {
             DbProviderFactory.Register(new MockProvider(true));
         }
 
-        //Migrator mig = new Migrator("Mock","nevermind",);
-
         [Test]
         public void LoadingMigrations_BrokenMigration_NotExist()
         {
-            Assert.Fail("Not implemented");
+            string migDir = Path.Combine(Directory.GetCurrentDirectory(), migrationDir, mig_ok_5);
+
+            Migrator mig = new Migrator(mockProviderName, mockConnectionString, migDir);
+
+            string[] migrationNames = mig.GetMigrationNames();
+
+            Assert.AreEqual(5, migrationNames.Length);
+            Assert.AreEqual(migrationNames[0], "2013-10-12_10-09");
+            Assert.AreEqual(migrationNames[1], "2013-10-12_10-10");
+            Assert.AreEqual(migrationNames[2], "2014-10-11_00-05");
+            Assert.AreEqual(migrationNames[3], "2014-10-11_00-08");
+            Assert.AreEqual(migrationNames[4], "2014-10-16_13-45");
         }
 
         [Test]
-        public void LoadingMigrations_BrokenMigration_Exist()
+        [ExpectedException(typeof(InvalidDataException))]
+        public void LoadingMigrations_BrokenMigration_ExistNoUp()
         {
-            Assert.Fail("Not implemented");
+            string migDir = Path.Combine(Directory.GetCurrentDirectory(), migrationDir, mig_no_up_script_4);
+
+            Migrator mig = new Migrator(mockProviderName, mockConnectionString, migDir);
+        }
+
+        [Test]
+        [ExpectedException(typeof(InvalidDataException))]
+        public void LoadingMigrations_BrokenMigration_ExistNoDown()
+        {
+            string migDir = Path.Combine(Directory.GetCurrentDirectory(), migrationDir, mig_no_down_script_4);
+
+            Migrator mig = new Migrator(mockProviderName, mockConnectionString, migDir);
         }
 
         [Test]

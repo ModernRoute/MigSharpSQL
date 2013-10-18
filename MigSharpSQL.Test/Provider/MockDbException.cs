@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 namespace MigSharpSQL.Test.Provider
 {
+    [Serializable]
     class MockDbException : DbException
     {
         public MockDbException()

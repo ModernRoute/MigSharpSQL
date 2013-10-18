@@ -38,6 +38,11 @@ namespace MigSharpSQL
             set;
         }
 
+        public string[] GetMigrationNames()
+        {
+            return Migrations.Keys.ToArray();
+        }
+
         /// <summary>
         /// 
         /// </summary>
