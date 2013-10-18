@@ -31,7 +31,7 @@ namespace MigSharpSQL
         /// 
         /// </summary>
         /// <param name="provider"></param>
-        private static void Register(IDbProvider provider)
+        public static void Register(IDbProvider provider)
         {
             providers.Add(provider.Name, provider);
         }

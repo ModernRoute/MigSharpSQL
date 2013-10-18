@@ -139,8 +139,14 @@ namespace MigSharpSQL.Test.Provider
 
         public UpdateRowSource UpdatedRowSource
         {
-            get;
-            set;
+            get
+            {
+                throw new NotSupportedException();
+            }
+            set
+            {
+                throw new NotSupportedException();
+            }
         }
 
         public void Dispose()
