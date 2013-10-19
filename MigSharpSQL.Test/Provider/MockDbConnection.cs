@@ -12,9 +12,28 @@ namespace MigSharpSQL.Test.Provider
         private const string dbName = "DATABASE";
         
         private bool opened = false;
-
+        
         #region Migration metadata
+
+        public static string MigrationStateStatic
+        {
+            get;
+            set;
+        }
+
         public string MigrationState
+        {
+            get
+            {
+                return MigrationStateStatic;
+            }
+            set
+            {
+                MigrationStateStatic = value;
+            }
+        }
+
+        public static int MigrationSubstateStatic
         {
             get;
             set;
@@ -22,8 +41,14 @@ namespace MigSharpSQL.Test.Provider
 
         public int MigrationSubstate
         {
-            get;
-            set;
+            get
+            {
+                return MigrationSubstateStatic;
+            }
+            set
+            {
+                MigrationSubstateStatic = value;
+            }
         }
         #endregion
 
@@ -33,8 +58,6 @@ namespace MigSharpSQL.Test.Provider
             {
                 throw new ArgumentNullException("connectionString");
             }
-
-            ConnectionString = connectionString;
         }
 
         public IDbTransaction BeginTransaction(IsolationLevel il)

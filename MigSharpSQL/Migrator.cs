@@ -189,10 +189,10 @@ namespace MigSharpSQL
 
                 int diff = indexState - indexCurrentState;
 
-                // We need to up 
+                // We need to up (current state was not applied correctly before)
                 if (diff >= 0)
                 {
-                    Up(connection, keys, indexCurrentState + 1, indexState, currentSubstate);
+                    Up(connection, keys, indexCurrentState, indexState, currentSubstate);
                 }
                 // We need to down
                 else
@@ -234,16 +234,16 @@ namespace MigSharpSQL
 
             DoStep(connection, steps[steps.Length - 1], newState, 0);
 
-            for (int i = first; i >= last; i--)
+            for (int i = first - 1; i >= last; i--)
             {
                 steps = LoadScript(Migrations[keys[i]].DownScriptFullPath);
                                 
                 for (int j = 0; j < steps.Length - 1; j++)
                 {
-                    DoStep(connection, steps[j], keys[i], j);
+                    DoStep(connection, steps[j], keys[i], j + 1);
                 }
 
-                newState = i > 0 ? keys[i] : null;
+                newState = i > 0 ? keys[i - 1] : null;
 
                 DoStep(connection, steps[steps.Length - 1], newState, 0);
             }
@@ -259,26 +259,35 @@ namespace MigSharpSQL
         /// <param name="currentSubstate"></param>
         private void Up(IDbConnection connection, string[] keys, int first, int last, int currentSubstate)
         {
-            string[] steps = LoadScript(Migrations[keys[first]].UpScriptFullPath);
-
             if (first == last && currentSubstate == 0)
             {
                 logger.Info("The database is already at specified state. No action required");
                 return;
             }
 
-            if (currentSubstate >= steps.Length || currentSubstate < 0)
+            string[] steps;
+
+            if (first >= 0)
             {
-                throw new InvalidOperationException(string.Format(
-                    "There are only {0} substate(s) available for state `{1}`, but database stays in {2} substate", 
-                    steps.Length, keys[first], currentSubstate));
+                logger.Info("Performing the upgrading scripts {0}...{1} has been started", keys[first], keys[last]);
+
+                steps = LoadScript(Migrations[keys[first]].UpScriptFullPath);
+
+                if (currentSubstate >= steps.Length || currentSubstate < 0)
+                {
+                    throw new InvalidOperationException(string.Format(
+                        "There are only {0} substate(s) available for state `{1}`, but database stays in {2} substate",
+                        steps.Length, keys[first], currentSubstate));
+                }
+
+                for (int j = steps.Length - currentSubstate; j < steps.Length; j++)
+                {
+                    DoStep(connection, steps[j], keys[first], steps.Length - 1 - j);
+                }
             }
-
-            logger.Info("Performing the upgrading scripts {0}...{1} has been started", keys[first], keys[last]);
-
-            for (int j = steps.Length - currentSubstate; j < steps.Length; j++)
+            else
             {
-                DoStep(connection, steps[j], keys[first], steps.Length - 1 - j);
+                logger.Info("Performing the upgrading scripts {0}...{1} has been started", keys[first + 1], keys[last]);
             }
 
             for (int i = first + 1; i <= last; i++)
@@ -354,7 +363,7 @@ namespace MigSharpSQL
             
             string script = fileInfo.OpenText().ReadToEnd();
 
-            return Regex.Split(script, "--//--$");
+            return script.Split(new string[] {"--//--\r\n","--//--\n"},StringSplitOptions.None);
         }
 
         /// <summary>
