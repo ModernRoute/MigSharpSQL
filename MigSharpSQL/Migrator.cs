@@ -349,16 +349,8 @@ namespace MigSharpSQL
         /// <param name="substateNum"></param>
         private void RunStep(IDbConnection connection, IDbTransaction transaction, string stepBody, string newState, int substateNum)
         {
-            if (transaction != null)
-            {
-                Provider.SetState(connection, transaction, newState, substateNum);
-                RunScript(connection, transaction, stepBody);
-            }
-            else
-            {
-                RunScript(connection, transaction, stepBody);
-                Provider.SetState(connection, transaction, newState, substateNum);
-            }
+            RunScript(connection, transaction, stepBody);
+            Provider.SetState(connection, transaction, newState, substateNum);
         }
 
         /// <summary>
