@@ -1,9 +1,4 @@
-﻿using System;
-using System.Data;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Data;
 
 namespace MigSharpSQL.Test.Provider
 {
@@ -12,7 +7,7 @@ namespace MigSharpSQL.Test.Provider
     /// </summary>
     class MockProvider : IDbProvider
     {
-        private const string providerName = "Mock";
+        public const string ProviderName = "Mock";
 
         public MockProvider(bool supportsTransactions)
         {
@@ -53,7 +48,7 @@ namespace MigSharpSQL.Test.Provider
 
         public string Name
         {
-            get { return providerName; }
+            get { return ProviderName; }
         }
 
         public IDbConnection CreateConnection(string connectionString)

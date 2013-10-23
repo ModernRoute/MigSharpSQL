@@ -33,6 +33,11 @@ namespace MigSharpSQL
         /// <param name="provider"></param>
         public static void Register(IDbProvider provider)
         {
+            if (providers.ContainsKey(provider.Name))
+            {
+                providers.Remove(provider.Name);
+            }
+
             providers.Add(provider.Name, provider);
         }
 

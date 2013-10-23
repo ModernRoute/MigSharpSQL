@@ -44,7 +44,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Constants.cs" />
     <Compile Include="MigratorTest.cs" />
+    <Compile Include="MigratorWithTransactionTest.cs" />
+    <Compile Include="MigratorWithoutTransactionsTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Provider\MockDbCommand.cs" />
     <Compile Include="Provider\MockDbConnection.cs" />
@@ -53,6 +56,9 @@
     <Compile Include="Provider\MockProvider.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Migrations\0_ok\.keep">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

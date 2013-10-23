@@ -1,5 +1,4 @@
 ﻿using System.Data;
-using System.Data.Common;
 
 namespace MigSharpSQL
 {
@@ -41,6 +40,9 @@ namespace MigSharpSQL
         /// <returns></returns>
         IDbConnection CreateConnection(string connectionString);
 
+        /// <summary>
+        /// 
+        /// </summary>
         void Load();
     }
 }

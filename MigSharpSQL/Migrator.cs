@@ -5,7 +5,6 @@ using System.Data;
 using System.Data.Common;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace MigSharpSQL
@@ -129,7 +128,7 @@ namespace MigSharpSQL
             {
                 if (migration.UpScriptFullPath == null || migration.DownScriptFullPath == null)
                 {
-                    throw new InvalidDataException(
+                    throw new FileNotFoundException(
                         string.Format(
                             "Migration script `{0}_{1}.sql` is absent.",
                             migration.Name,
@@ -216,12 +215,7 @@ namespace MigSharpSQL
         {
             string[] steps = LoadScript(Migrations[keys[first]].DownScriptFullPath);
 
-            if (currentSubstate >= steps.Length || currentSubstate < 0)
-            {
-                throw new InvalidOperationException(string.Format(
-                    "There are only {0} substate(s) available for state `{1}`, but database stays in {2} substate",
-                    steps.Length, keys[first], currentSubstate));
-            }
+            CheckSubstateValid(keys, first, currentSubstate, steps);
 
             logger.Info("Performing the downgrading scripts {0}...{1} has been started", keys[first], keys[last]);
 
@@ -252,6 +246,23 @@ namespace MigSharpSQL
         /// <summary>
         /// 
         /// </summary>
+        /// <param name="keys"></param>
+        /// <param name="first"></param>
+        /// <param name="currentSubstate"></param>
+        /// <param name="steps"></param>
+        private static void CheckSubstateValid(string[] keys, int first, int currentSubstate, string[] steps)
+        {
+            if (currentSubstate >= steps.Length || currentSubstate < 0)
+            {
+                throw new InvalidOperationException(string.Format(
+                    "There are only {0} substate(s) available for state `{1}`, but database stays in {2} substate",
+                    steps.Length, keys[first], currentSubstate));
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
         /// <param name="connection"></param>
         /// <param name="keys"></param>
         /// <param name="first"></param>
@@ -273,12 +284,7 @@ namespace MigSharpSQL
 
                 steps = LoadScript(Migrations[keys[first]].UpScriptFullPath);
 
-                if (currentSubstate >= steps.Length || currentSubstate < 0)
-                {
-                    throw new InvalidOperationException(string.Format(
-                        "There are only {0} substate(s) available for state `{1}`, but database stays in {2} substate",
-                        steps.Length, keys[first], currentSubstate));
-                }
+                CheckSubstateValid(keys, first, currentSubstate, steps);
 
                 for (int j = steps.Length - currentSubstate; j < steps.Length; j++)
                 {
@@ -343,8 +349,26 @@ namespace MigSharpSQL
         /// <param name="substateNum"></param>
         private void RunStep(IDbConnection connection, IDbTransaction transaction, string stepBody, string newState, int substateNum)
         {
-            Provider.SetState(connection, transaction, newState, substateNum);
+            if (transaction != null)
+            {
+                Provider.SetState(connection, transaction, newState, substateNum);
+                RunScript(connection, transaction, stepBody);
+            }
+            else
+            {
+                RunScript(connection, transaction, stepBody);
+                Provider.SetState(connection, transaction, newState, substateNum);
+            }
+        }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="transaction"></param>
+        /// <param name="stepBody"></param>
+        private static void RunScript(IDbConnection connection, IDbTransaction transaction, string stepBody)
+        {
             using (IDbCommand command = connection.CreateCommand())
             {
                 command.Connection = connection;
@@ -355,6 +379,11 @@ namespace MigSharpSQL
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="scriptFullPath"></param>
+        /// <returns></returns>
         private string[] LoadScript(string scriptFullPath)
         {
             FileInfo fileInfo = new FileInfo(scriptFullPath);
