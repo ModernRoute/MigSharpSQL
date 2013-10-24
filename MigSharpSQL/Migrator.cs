@@ -349,18 +349,6 @@ namespace MigSharpSQL
         /// <param name="substateNum"></param>
         private void RunStep(IDbConnection connection, IDbTransaction transaction, string stepBody, string newState, int substateNum)
         {
-            RunScript(connection, transaction, stepBody);
-            Provider.SetState(connection, transaction, newState, substateNum);
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="connection"></param>
-        /// <param name="transaction"></param>
-        /// <param name="stepBody"></param>
-        private static void RunScript(IDbConnection connection, IDbTransaction transaction, string stepBody)
-        {
             using (IDbCommand command = connection.CreateCommand())
             {
                 command.Connection = connection;
@@ -369,6 +357,8 @@ namespace MigSharpSQL
                 command.CommandText = stepBody;
                 command.ExecuteNonQuery();
             }
+
+            Provider.SetState(connection, transaction, newState, substateNum);
         }
 
         /// <summary>
