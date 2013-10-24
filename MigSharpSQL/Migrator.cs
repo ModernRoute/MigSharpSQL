@@ -316,6 +316,8 @@ namespace MigSharpSQL
         /// <param name="substateNum"></param>
         private void DoStep(IDbConnection connection, string stepBody, string newState, int substateNum)
         {
+            logger.Debug("Move database to state `{0}`, substate `{1}`", newState, substateNum);
+
             if (Provider.SupportsTransactions)
             {
                 using (IDbTransaction transaction = connection.BeginTransaction())
