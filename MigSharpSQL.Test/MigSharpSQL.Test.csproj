@@ -99,7 +99,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  <ItemGroup />
   <ItemGroup>
     <None Include="Migrations\4_no_down_script\2013-09-01_16-44_down.sql">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

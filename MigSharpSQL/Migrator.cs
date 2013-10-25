@@ -221,7 +221,7 @@ namespace MigSharpSQL
 
             for (int j = currentSubstate; j < steps.Length - 1; j++)
             {
-                DoStep(connection, steps[j], keys[first], j);
+                DoStep(connection, steps[j], keys[first], j + 1);
             }
 
             string newState = first > 0 ? keys[first - 1] : null;
