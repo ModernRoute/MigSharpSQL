@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Configuration;
-using System.Diagnostics;
-using System.Globalization;
-using System.Linq;
+using System.Collections.Generic;
 using Migrate.Util;
 using MigSharpSQL;
 using NLog.Config;
@@ -49,10 +46,10 @@ namespace Migrate
             switch (options.Command)
             {
                 case "state":                    
-                    Environment.ExitCode = GetState(options.Options);
+                    Environment.ExitCode = GetState(options);
                     break;
                 case "migrate":
-                    Environment.ExitCode = Migrate(options.Options);
+                    Environment.ExitCode = Migrate(options);
                     break;
                 case "help":
                 case "--help":
@@ -70,20 +67,16 @@ namespace Migrate
             Console.WriteLine("    migrate  Migrate database to specified state");
             Console.WriteLine("");
             Console.WriteLine("Commands parameters:");
-            Console.WriteLine("    --provider <provider>                    Provider name. Required");
-            Console.WriteLine("    --connection-string <connection-string>  Connection string. Required");
-            Console.WriteLine("    --directory <directory>                  Migrations directory. Optional. The current directory");
-            Console.WriteLine("                                             will be used if ommited");
-            Console.WriteLine("    --to <state>                             Wanted state. Useful for `migrate` command only. Optional. ");
-            Console.WriteLine("                                             Special values: `initial` (before the first migration state), ");
-            Console.WriteLine("                                             `last` (the last migration state). Will use `last` if ommited");
+            Console.WriteLine("    --to <state>                             Wanted state. Useful for migrate command only. Optional. ");
+            Console.WriteLine("                                             Special values: initial (before the first migration state), ");
+            Console.WriteLine("                                             last (the last migration state). Will use last if ommited");
         }
 
-        private static int GetState(Dictionary<string, string> dictionary)
+        private static int GetState(CommandLineOptions options)
         {
             try
             {
-                Migrator migrator = new Migrator(dictionary["provider"], dictionary["connection-string"], dictionary["directory"]);
+                Migrator migrator = MigratorFromConfig();
 
                 int substate;
                 string state = migrator.GetCurrentState(out substate);
@@ -99,32 +92,30 @@ namespace Migrate
             }
         }
 
-        private static int Migrate(Dictionary<string, string> dictionary)
+        private static Migrator MigratorFromConfig()
         {
-            string wantedState = dictionary.ContainsKey("to") ? dictionary["to"] : "last";
+            return new Migrator(
+                ConfigurationManager.AppSettings["provider"], 
+                ConfigurationManager.AppSettings["connection-string"], 
+                ConfigurationManager.AppSettings["directory"]
+                );            
+        }
+
+        private static int Migrate(CommandLineOptions options)
+        {
+            string wantedState = options.GetOption("to","last");
 
             try
             {
-                Migrator migrator = new Migrator(dictionary["provider"], dictionary["connection-string"], dictionary["directory"]);
+                Migrator migrator = MigratorFromConfig();
 
-                switch (wantedState.ToLower())
-                {
-                    case "initial":
-                        migrator.MigrateTo(null);
-                        break;
-                    case "last":
-                        migrator.MigrateToLast();
-                        break;
-                    default:
-                        migrator.MigrateTo(wantedState);
-                        break;
-                } 
-
+                migrator.MigrateTo(wantedState.ToLower());
+                
                 return SuccessExitCode;
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Cannot migrate to state `{0}` since error: {1}", wantedState, ex);
+                Console.WriteLine("Cannot migrate to state {0} since error: {1}", wantedState, ex);
                 return FailedMigrationExitCode;
             }
         }
@@ -176,27 +167,8 @@ namespace Migrate
             {
                 case "help":
                 case "--help":
-                    return true;
                 case "state":
                 case "migrate":
-                    if (!options.Options.ContainsKey("provider"))
-                    {
-                        Console.WriteLine("migrate {0}: provider name is not specified.", options.Command);
-                        return false;
-                    }
-
-                    if (!options.Options.ContainsKey("connection-string"))
-                    {
-                        Console.WriteLine("migrate {0}: connection string is not specified.", options.Command);
-                        return false;
-                    }
-
-                    if (!options.Options.ContainsKey("directory"))
-                    {
-                        Console.WriteLine("migrate {0}: directory is not specified.", options.Command);
-                        return false;                
-                    }
-
                     return true;
                 default:
                     Console.WriteLine("migrate: '{0}' is not a migrate command. See 'migrate help'.",options.Command);

@@ -8,6 +8,9 @@ namespace MigSharpSQL.Test
     [TestFixture]
     class MigratorWithTransactionTest : MigratorTest
     {
+        private const string initialState = "initial";
+        private const string lastState = "last";
+
         public MigratorWithTransactionTest()
             : base()
         {
@@ -60,10 +63,10 @@ namespace MigSharpSQL.Test
         [Test]
         public void GettingCurrentState_Null_OK()
         {
-            const string state = null;
+            const string state = initialState;
             const int substate = 0;
 
-            MockDbConnection.MigrationStateStatic = state;
+            MockDbConnection.MigrationStateStatic = null;
             MockDbConnection.MigrationSubstateStatic = substate;
 
             Migrator mig = CreateMigrator(Constants.MigOk5);
@@ -74,19 +77,19 @@ namespace MigSharpSQL.Test
         [Test]
         public void MigrationToInitialState_InitialState_NoActionRequired()
         {
-            DoAndVerifyMigration_Success(null, 0, null, 0, Constants.MigOk5);
+            DoAndVerifyMigration_Success(null, 0, initialState, 0, Constants.MigOk5);
         }
 
         [Test]
         public void MigrationToInitialState_MiddleState_DowngradeToInitial()
         {
-            DoAndVerifyMigration_Success("2014-10-11_00-08", 0, null, 0, Constants.MigOk5);
+            DoAndVerifyMigration_Success("2014-10-11_00-08", 0, initialState, 0, Constants.MigOk5);
         }
 
         [Test]
         public void MigrationToInitialState_MiddleStateAfterError_DowngradeToInitial()
         {
-            DoAndVerifyMigration_Success("2014-10-11_00-08", 3, null, 0, Constants.MigOk5);
+            DoAndVerifyMigration_Success("2014-10-11_00-08", 3, initialState, 0, Constants.MigOk5);
         }
 
         [Test]
@@ -127,7 +130,7 @@ namespace MigSharpSQL.Test
 
             Migrator mig = CreateMigrator(Constants.MigOk5);
 
-            mig.MigrateToLast();
+            mig.MigrateTo(lastState);
 
             CheckState(mig, "2014-10-16_13-45", 0);
         }
@@ -152,9 +155,9 @@ namespace MigSharpSQL.Test
 
             Migrator mig = CreateMigrator(Constants.MigOk0);
 
-            mig.MigrateToLast();
+            mig.MigrateTo(lastState);
 
-            CheckState(mig, null, 0);
+            CheckState(mig, initialState, 0);
         }
 
         [Test]

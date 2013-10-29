@@ -27,7 +27,7 @@ namespace MigSharpSQL.Test
             int migrationSubstate;
             string migrationState = mig.GetCurrentState(out migrationSubstate);
 
-            Assert.AreEqual(expectedMigrationState == null ? "initial" : MockDbConnection.MigrationStateStatic, migrationState);
+            Assert.AreEqual(expectedMigrationState, migrationState);
             Assert.AreEqual(expectedMigrationSubstate, migrationSubstate);
         }
 

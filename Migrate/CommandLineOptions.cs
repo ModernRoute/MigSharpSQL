@@ -33,6 +33,22 @@ namespace Migrate.Util
         /// <summary>
         /// 
         /// </summary>
+        /// <param name="key"></param>
+        /// <param name="defaultValue"></param>
+        /// <returns></returns>
+        public string GetOption(string key, string defaultValue)
+        {
+            if (!Options.ContainsKey(key))
+            {
+                return defaultValue;
+            }
+
+            return Options[key];
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
         /// <param name="command"></param>
         public CommandLineOptions(string command)
         {
