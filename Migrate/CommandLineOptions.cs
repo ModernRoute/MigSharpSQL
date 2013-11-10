@@ -33,6 +33,21 @@ namespace Migrate.Util
         /// <summary>
         /// 
         /// </summary>
+        /// <param name="command"></param>
+        public CommandLineOptions(string command)
+        {
+            if (command == null)
+            {
+                throw new ArgumentNullException("command");
+            }
+
+            Command = command;
+            Options = new Dictionary<string, string>();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
         /// <param name="key"></param>
         /// <param name="defaultValue"></param>
         /// <returns></returns>
@@ -44,21 +59,6 @@ namespace Migrate.Util
             }
 
             return Options[key];
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="command"></param>
-        public CommandLineOptions(string command)
-        {
-            if (command == null)
-            {
-                throw new ArgumentNullException("command");
-            }
-
-            Command = command;
-            Options = new Dictionary<string, string>();
         }
     }
 }

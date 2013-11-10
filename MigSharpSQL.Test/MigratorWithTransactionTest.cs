@@ -8,9 +8,6 @@ namespace MigSharpSQL.Test
     [TestFixture]
     class MigratorWithTransactionTest : MigratorTest
     {
-        private const string initialState = "initial";
-        private const string lastState = "last";
-
         public MigratorWithTransactionTest()
             : base()
         {
@@ -179,5 +176,8 @@ namespace MigSharpSQL.Test
         {
             DoAndVerifyMigration_Fail("2014-10-11_00-08", 0, "2013-10-12_10-10", "2014-10-11_00-08", 1);
         }
+
+        private const string initialState = "initial";
+        private const string lastState = "last";
     }
 }

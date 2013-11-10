@@ -67,9 +67,12 @@ namespace Migrate
             Console.WriteLine("    migrate  Migrate database to specified state");
             Console.WriteLine("");
             Console.WriteLine("Commands parameters:");
-            Console.WriteLine("    --to <state>                             Wanted state. Useful for migrate command only. Optional. ");
-            Console.WriteLine("                                             Special values: initial (before the first migration state), ");
-            Console.WriteLine("                                             last (the last migration state). Will use last if ommited");
+            Console.WriteLine("    --to <state>                             " + 
+                "Wanted state. Useful for migrate command only. Optional. ");
+            Console.WriteLine("                                             " + 
+                "Special values: initial (before the first migration state), ");
+            Console.WriteLine("                                             " +
+                "last (the last migration state). Will use last if ommited");
         }
 
         private static int GetState(CommandLineOptions options)
@@ -171,7 +174,8 @@ namespace Migrate
                 case "migrate":
                     return true;
                 default:
-                    Console.WriteLine("migrate: '{0}' is not a migrate command. See 'migrate help'.",options.Command);
+                    Console.WriteLine("migrate: '{0}' is not a migrate command. See 'migrate help'.",
+                        options.Command);
                     return false;
             }
         }

@@ -14,42 +14,6 @@ namespace MigSharpSQL
     /// </summary>
     public class Migrator
     {
-        private const string initialState = "initial";
-        private const string lastState = "last";
-
-        private const string upSuffix = "up";
-        private const string downSuffix = "down";
-
-        private static Logger logger = LogManager.GetCurrentClassLogger();
-
-        // yyyy-MM-dd_HH-mm_up.sql
-        private readonly Regex scriptFilenamePattern = 
-            new Regex(@"(\d{4}-\d{2}-\d{2}_\d{2}-\d{2})_(" + upSuffix + "|" + downSuffix + @")\.sql",
-                RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
-        /// <summary>
-        /// 
-        /// </summary>
-        private IDbProvider Provider
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        private SortedDictionary<string,Migration> Migrations
-        {
-            get;
-            set;
-        }
-
-        public string[] GetMigrationNames()
-        {
-            return Migrations.Keys.ToArray();
-        }
-
         /// <summary>
         /// 
         /// </summary>
@@ -100,6 +64,150 @@ namespace MigSharpSQL
 
             LoadMigrations();
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="state"></param>
+        public void MigrateTo(string state)
+        {
+            if (state == null)
+            {
+                throw new ArgumentNullException("state");
+            }
+
+            state = ParseState(state);
+
+            logger.Info("Migration started");
+
+            int indexState;
+            string[] keys = Migrations.Keys.ToArray();
+
+            indexState = GetStateIndex(state, keys, "The state {0} does not exist");
+
+            using (IDbConnection connection = OpenConnection())
+            {
+                logger.Info("Figuring out the current database state");
+
+                int currentSubstate;
+                string currentState = GetCurrentState(connection, out currentSubstate);
+
+                logger.Info("The current database state is {0}. The substate is {1}", 
+                    GetHumanStateName(currentState), currentSubstate);
+
+                int indexCurrentState = GetStateIndex(currentState, keys, "Unknown database state {0}");
+
+                // ok, everything alright, let's migrate
+
+                int diff = indexState - indexCurrentState;
+
+                // We need to up (current state was not applied correctly before)
+                if (diff >= 0)
+                {
+                    Up(connection, keys, indexCurrentState, indexState, currentSubstate);
+                }
+                // We need to down
+                else
+                {
+                    Down(connection, keys, indexCurrentState, indexState + 1, currentSubstate);
+                }
+            }
+
+            logger.Info("Migration completed successfully");
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public string GetCurrentState(out int substate)
+        {
+            using (IDbConnection connection = OpenConnection())
+            {
+                return GetHumanStateName(GetCurrentState(connection, out substate));
+            }
+        }
+
+        public string[] GetMigrationNames()
+        {
+            return Migrations.Keys.ToArray();
+        }
+
+        private const string initialState = "initial";
+        private const string lastState = "last";
+
+        private const string upSuffix = "up";
+        private const string downSuffix = "down";
+        
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="keys"></param>
+        /// <param name="first"></param>
+        /// <param name="currentSubstate"></param>
+        /// <param name="steps"></param>
+        private static void CheckSubstateValid(string[] keys, int first, int currentSubstate, string[] steps)
+        {
+            if (currentSubstate >= steps.Length || currentSubstate < 0)
+            {
+                throw new InvalidOperationException(string.Format(
+                    "There are only {0} substate(s) available for state {1}, but database stays in {2} substate",
+                    steps.Length, keys[first], currentSubstate));
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="state"></param>
+        /// <param name="keys"></param>
+        /// <param name="errorMsgTemplate"></param>
+        /// <returns></returns>
+        private static int GetStateIndex(string state, string[] keys, string errorMsgTemplate)
+        {
+            int indexState;
+
+            if (state == null)
+            {
+                indexState = -1;
+            }
+            else
+            {
+                indexState = Array.BinarySearch<string>(keys, state);
+
+                if (indexState < 0)
+                {
+                    throw new InvalidOperationException(string.Format(errorMsgTemplate, state));
+                }
+            }
+
+            return indexState;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        private IDbProvider Provider
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        private SortedDictionary<string, Migration> Migrations
+        {
+            get;
+            set;
+        }
+
+        // yyyy-MM-dd_HH-mm_up.sql
+        private readonly Regex scriptFilenamePattern = 
+            new Regex(@"(\d{4}-\d{2}-\d{2}_\d{2}-\d{2})_(" + upSuffix + "|" + downSuffix + @")\.sql",
+                RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         /// <summary>
         /// 
@@ -172,56 +280,6 @@ namespace MigSharpSQL
         /// 
         /// </summary>
         /// <param name="state"></param>
-        public void MigrateTo(string state)
-        {
-            if (state == null)
-            {
-                throw new ArgumentNullException("state");
-            }
-
-            state = ParseState(state);
-
-            logger.Info("Migration started");
-
-            int indexState;
-            string[] keys = Migrations.Keys.ToArray();
-
-            indexState = GetStateIndex(state, keys, "The state {0} does not exist");
-
-            using (IDbConnection connection = OpenConnection())
-            {
-                logger.Info("Figuring out the current database state");
-
-                int currentSubstate;
-                string currentState = GetCurrentState(connection, out currentSubstate);
-
-                logger.Info("The current database state is {0}. The substate is {1}", GetHumanStateName(currentState), currentSubstate);
-
-                int indexCurrentState = GetStateIndex(currentState, keys, "Unknown database state {0}");
-
-                // ok, everything alright, let's migrate
-
-                int diff = indexState - indexCurrentState;
-
-                // We need to up (current state was not applied correctly before)
-                if (diff >= 0)
-                {
-                    Up(connection, keys, indexCurrentState, indexState, currentSubstate);
-                }
-                // We need to down
-                else
-                {
-                    Down(connection, keys, indexCurrentState, indexState + 1, currentSubstate);
-                }
-            }
-
-            logger.Info("Migration completed successfully");
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="state"></param>
         /// <returns></returns>
         private string ParseState(string state)
         {
@@ -284,23 +342,6 @@ namespace MigSharpSQL
                 newState = i > 0 ? keys[i - 1] : null;
 
                 DoStep(connection, steps[steps.Length - 1], newState, 0);
-            }
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="keys"></param>
-        /// <param name="first"></param>
-        /// <param name="currentSubstate"></param>
-        /// <param name="steps"></param>
-        private static void CheckSubstateValid(string[] keys, int first, int currentSubstate, string[] steps)
-        {
-            if (currentSubstate >= steps.Length || currentSubstate < 0)
-            {
-                throw new InvalidOperationException(string.Format(
-                    "There are only {0} substate(s) available for state {1}, but database stays in {2} substate",
-                    steps.Length, keys[first], currentSubstate));
             }
         }
 
@@ -393,7 +434,8 @@ namespace MigSharpSQL
         /// <param name="stepBody"></param>
         /// <param name="newState"></param>
         /// <param name="substateNum"></param>
-        private void RunStep(IDbConnection connection, IDbTransaction transaction, string stepBody, string newState, int substateNum)
+        private void RunStep(IDbConnection connection, IDbTransaction transaction, 
+            string stepBody, string newState, int substateNum)
         {
             using (IDbCommand command = connection.CreateCommand())
             {
@@ -420,35 +462,7 @@ namespace MigSharpSQL
             
             string script = fileInfo.OpenText().ReadToEnd();
 
-            return script.Split(new string[] {"--//--\r\n","--//--\n"},StringSplitOptions.None);
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="state"></param>
-        /// <param name="keys"></param>
-        /// <param name="errorMsgTemplate"></param>
-        /// <returns></returns>
-        private static int GetStateIndex(string state, string[] keys, string errorMsgTemplate)
-        {
-            int indexState;
-
-            if (state == null)
-            {
-                indexState = -1;
-            }
-            else
-            {
-                indexState = Array.BinarySearch<string>(keys, state);
-
-                if (indexState < 0)
-                {
-                    throw new InvalidOperationException(string.Format(errorMsgTemplate, state));
-                }
-            }
-
-            return indexState;
+            return script.Split(new string[] {"--//--\r\n","--//--\n"}, StringSplitOptions.None);
         }
 
         /// <summary>
@@ -470,18 +484,6 @@ namespace MigSharpSQL
         private string GetCurrentState(IDbConnection connection, out int substate)
         {
             return Provider.GetState(connection, out substate);
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        public string GetCurrentState(out int substate)
-        {
-            using (IDbConnection connection = OpenConnection())
-            {
-                return GetHumanStateName(GetCurrentState(connection, out substate));
-            }
         }
 
         /// <summary>

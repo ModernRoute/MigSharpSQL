@@ -10,23 +10,6 @@ namespace MigSharpSQL
     /// </summary>
     static public class DbProviderFactory
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
-
-        /// <summary>
-        /// Supported providers
-        /// </summary>
-        private static Dictionary<string, IDbProvider> providers;
-
-        /// <summary>
-        /// 
-        /// </summary>
-        static DbProviderFactory()
-        {
-            providers = new Dictionary<string, IDbProvider>();
-
-            Register(new MySqlProvider());
-        }
-
         /// <summary>
         /// 
         /// </summary>
@@ -57,12 +40,29 @@ namespace MigSharpSQL
 
                 throw new NotSupportedException(
                     string.Format(
-                        "Provider {0} is not supported. The following providers are supported: {1}.", 
-                        providerName, 
+                        "Provider {0} is not supported. The following providers are supported: {1}.",
+                        providerName,
                         string.Join(", ", providers.Keys)
                         )
-                    );            
+                    );
             }
+        }
+
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+
+        /// <summary>
+        /// Supported providers
+        /// </summary>
+        private static Dictionary<string, IDbProvider> providers;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        static DbProviderFactory()
+        {
+            providers = new Dictionary<string, IDbProvider>();
+
+            Register(new MySqlProvider());
         }
     }
 }

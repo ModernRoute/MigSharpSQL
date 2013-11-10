@@ -19,6 +19,7 @@ namespace MigSharpSQL.Test
             string migDir = Path.Combine(Directory.GetCurrentDirectory(), Constants.MigrationDir, migrationBulk);
 
             Migrator mig = new Migrator(MockProvider.ProviderName, Constants.MockConnectionString, migDir);
+
             return mig;
         }
 
@@ -31,7 +32,8 @@ namespace MigSharpSQL.Test
             Assert.AreEqual(expectedMigrationSubstate, migrationSubstate);
         }
 
-        protected void DoAndVerifyMigration_Success(string currentState, int currentSubstate, string wantedState, int wantedSubstate, string migrationBulk)
+        protected void DoAndVerifyMigration_Success(string currentState, int currentSubstate, string wantedState, 
+            int wantedSubstate, string migrationBulk)
         {
             MockDbConnection.MigrationStateStatic = currentState;
             MockDbConnection.MigrationSubstateStatic = currentSubstate;
@@ -43,7 +45,8 @@ namespace MigSharpSQL.Test
             CheckState(mig, wantedState, wantedSubstate);
         }
 
-        protected void DoAndVerifyMigration_Fail(string currentState, int currentSubstate, string wantedState, string newState, int newSubstate)
+        protected void DoAndVerifyMigration_Fail(string currentState, int currentSubstate, string wantedState, 
+            string newState, int newSubstate)
         {
             MockDbConnection.MigrationStateStatic = currentState;
             MockDbConnection.MigrationSubstateStatic = currentSubstate;

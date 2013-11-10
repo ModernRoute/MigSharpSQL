@@ -10,6 +10,16 @@ namespace MigSharpSQL
         /// <summary>
         /// 
         /// </summary>
+        bool SupportsTransactions { get; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        string Name { get; }
+
+        /// <summary>
+        /// 
+        /// </summary>
         /// <param name="connection"></param>
         /// <param name="transaction"></param>
         /// <returns></returns>
@@ -22,16 +32,6 @@ namespace MigSharpSQL
         /// <param name="transaction"></param>
         /// <param name="state"></param>
         void SetState(IDbConnection connection, IDbTransaction transaction, string state, int substate);
-
-        /// <summary>
-        /// 
-        /// </summary>
-        bool SupportsTransactions { get; }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        string Name { get; }
 
         /// <summary>
         /// 
