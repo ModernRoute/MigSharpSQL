@@ -3,12 +3,12 @@
 namespace MigSharpSQL
 {
     /// <summary>
-    /// 
+    /// Represents the one migration.
     /// </summary>
     internal class Migration
     {
         /// <summary>
-        /// 
+        /// Gets migration unique name.
         /// </summary>
         public string Name
         {
@@ -17,7 +17,7 @@ namespace MigSharpSQL
         }
 
         /// <summary>
-        /// 
+        /// Full path to up script.
         /// </summary>
         public string UpScriptFullPath
         {
@@ -26,7 +26,7 @@ namespace MigSharpSQL
         }
 
         /// <summary>
-        /// 
+        /// Full path to down script.
         /// </summary>
         public string DownScriptFullPath
         {
@@ -35,9 +35,10 @@ namespace MigSharpSQL
         }
 
         /// <summary>
-        /// 
+        /// Initializes a new instance of <see cref="Migration"/> class.
         /// </summary>
-        /// <param name="name"></param>
+        /// <param name="name">Migration name.</param>
+        /// <exception cref="ArgumentNullException">If <paramref name="name"/> is null.</exception>
         public Migration(string name)
         {
             if (name == null)

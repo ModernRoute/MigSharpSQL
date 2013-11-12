@@ -1,4 +1,5 @@
-﻿using MigSharpSQL.Test.Provider;
+﻿using MigSharpSQL.Exceptions;
+using MigSharpSQL.Test.Provider;
 using NUnit.Framework;
 using System;
 using System.IO;
@@ -158,14 +159,14 @@ namespace MigSharpSQL.Test
         }
 
         [Test]
-        [ExpectedException(typeof(InvalidOperationException))]
+        [ExpectedException(typeof(MigrationException))]
         public void MigrationUp_InvalidSubstate_Fail()
         {
             DoAndVerifyMigration_Success("2013-10-12_10-10", 6, "2014-10-11_00-08", 0, Constants.MigOk5);
         }
 
         [Test]
-        [ExpectedException(typeof(InvalidOperationException))]
+        [ExpectedException(typeof(MigrationException))]
         public void MigrationDown_InvalidSubstate_Fail()
         {
             DoAndVerifyMigration_Success("2014-10-11_00-08", 9, "2013-10-12_10-10", 0, Constants.MigOk5);
