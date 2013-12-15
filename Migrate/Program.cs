@@ -6,6 +6,7 @@ using MigSharpSQL;
 using NLog.Config;
 using NLog.Targets;
 using NLog;
+using Migrate.Resources;
 
 namespace Migrate
 {
@@ -60,19 +61,7 @@ namespace Migrate
 
         private static void Help()
         {
-            Console.WriteLine("usage: migrate <command> <args>");
-            Console.WriteLine("");
-            Console.WriteLine("The migrate commands are:");
-            Console.WriteLine("    state    Get current database state");
-            Console.WriteLine("    migrate  Migrate database to specified state");
-            Console.WriteLine("");
-            Console.WriteLine("Commands parameters:");
-            Console.WriteLine("    --to <state>                             " + 
-                "Wanted state. Useful for migrate command only. Optional. ");
-            Console.WriteLine("                                             " + 
-                "Special values: initial (before the first migration state), ");
-            Console.WriteLine("                                             " +
-                "last (the last migration state). Will use last if ommited");
+            Console.WriteLine(Strings.Usage);
         }
 
         private static int GetState(CommandLineOptions options)
@@ -84,13 +73,13 @@ namespace Migrate
                 int substate;
                 string state = migrator.GetCurrentState(out substate);
 
-                logger.Info("Current state: {0}", state);
+                logger.Info(LogStrings.CurrentState, state);
 
                 return SuccessExitCode;
             }
             catch (Exception ex)
             {
-                logger.Error("Cannot fetch the current state: {0}", ex);
+                logger.Error(LogStrings.CannotFetchCurrentState, ex);
                 return FailedMigrationExitCode;
             }
         }
@@ -118,7 +107,7 @@ namespace Migrate
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Cannot migrate to state {0} since error: {1}", wantedState, ex);
+                Console.WriteLine(Strings.CannotMigrateToStateSinceError, wantedState, ex);
                 return FailedMigrationExitCode;
             }
         }
@@ -174,8 +163,8 @@ namespace Migrate
                 case "migrate":
                     return true;
                 default:
-                    Console.WriteLine("migrate: '{0}' is not a migrate command. See 'migrate help'.",
-                        options.Command);
+                    Console.WriteLine("migrate: {0}",
+                        string.Format(Strings.NotMigrateCommand, options.Command, "migrate help"));
                     return false;
             }
         }
