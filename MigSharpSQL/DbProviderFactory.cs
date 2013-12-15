@@ -1,4 +1,5 @@
 ﻿using MigSharpSQL.Providers;
+using MigSharpSQL.Resources;
 using NLog;
 using System;
 using System.Collections.Generic;
@@ -27,7 +28,7 @@ namespace MigSharpSQL
 
             if (provider.Name == null)
             {
-                throw new ArgumentException("Provider name cannot be null");
+                throw new ArgumentException(Strings.ProviderNameCannotBeNull);
             }
 
             if (providers.ContainsKey(provider.Name))
@@ -61,7 +62,7 @@ namespace MigSharpSQL
 
                 throw new NotSupportedException(
                     string.Format(
-                        "Provider {0} is not supported. The following providers are supported: {1}.",
+                        Strings.ProviderIsNotSupported,
                         providerName,
                         string.Join(", ", providers.Keys)
                         )

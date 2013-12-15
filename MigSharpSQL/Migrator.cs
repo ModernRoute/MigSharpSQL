@@ -1,4 +1,5 @@
 ﻿using MigSharpSQL.Exceptions;
+using MigSharpSQL.Resources;
 using NLog;
 using System;
 using System.Collections.Generic;
@@ -92,24 +93,24 @@ namespace MigSharpSQL
 
             state = ParseState(state);
 
-            logger.Info("Migration started");
+            logger.Info(LogStrings.MigrationStarted);
 
             int indexState;
             string[] keys = GetMigrationNames();
 
-            indexState = GetStateIndex(state, keys, "The state {0} does not exist");
+            indexState = GetStateIndex(state, keys, Strings.StateDoesNotExists);
 
             using (IDbConnection connection = OpenConnection())
             {
-                logger.Info("Figuring out the current database state");
+                logger.Info(LogStrings.FiguringOutCurrentDbState);
 
                 int currentSubstate;
                 string currentState = GetCurrentState(connection, out currentSubstate);
 
-                logger.Info("The current database state is {0}. The substate is {1}", 
+                logger.Info(LogStrings.DbStateSubstateInfo, 
                     GetHumanStateName(currentState), currentSubstate);
 
-                int indexCurrentState = GetStateIndex(currentState, keys, "Unknown database state {0}");
+                int indexCurrentState = GetStateIndex(currentState, keys, Strings.UnknownDatabaseState);
 
                 // ok, everything alright, let's migrate
 
@@ -127,7 +128,7 @@ namespace MigSharpSQL
                 }
             }
 
-            logger.Info("Migration completed successfully");
+            logger.Info(LogStrings.MigrationCompletedSuccefully);
         }
 
         /// <summary>
@@ -176,7 +177,7 @@ namespace MigSharpSQL
             if (substate >= steps.Length || substate < 0)
             {
                 throw new MigrationException(string.Format(
-                    "There are only {0} substate(s) available for state {1}, but database stays in {2} substate",
+                    Strings.SubstateIsNotApplicable,
                     steps.Length, state, substate));
             }
         }
@@ -266,7 +267,7 @@ namespace MigSharpSQL
                 if (ex is ArgumentException || ex is SecurityException ||
                     ex is PathTooLongException || ex is DirectoryNotFoundException)
                 {
-                    throw new MigrationException("Cannot load migrations.", ex);
+                    throw new MigrationException(Strings.CannotLoadMigrations, ex);
                 }
 
                 throw;
@@ -278,12 +279,23 @@ namespace MigSharpSQL
                 {
                     throw new FileNotFoundException(
                         string.Format(
-                            "Migration script {0}_{1}.sql is absent.",
-                            migration.Name,
-                            migration.UpScriptFullPath == null ? upSuffix: downSuffix)
-                        );
+                            Strings.MigrationScriptIsAbsent,
+                            GetMigrationScriptName(migration.Name, migration.UpScriptFullPath == null)
+                        )
+                    );
                 }
             }
+        }
+
+        /// <summary>
+        /// Gets migration script name.
+        /// </summary>
+        /// <param name="migrationName">Migration name.</param>
+        /// <param name="isUp">The type of the script.</param>
+        /// <returns>Script name.</returns>
+        private string GetMigrationScriptName(string migrationName, bool isUp)
+        {
+            return string.Format("{0}_{1}.sql", migrationName, isUp ? upSuffix : downSuffix);
         }
 
         /// <summary>
@@ -357,7 +369,7 @@ namespace MigSharpSQL
 
             CheckSubstateValid(migrationNames[first], currentSubstate, steps);
 
-            logger.Info("Performing the downgrading scripts {0}...{1} has been started", migrationNames[first], 
+            logger.Info(LogStrings.PerformingDowngrade, migrationNames[first], 
                 migrationNames[last]);
 
             for (int j = currentSubstate; j < steps.Length - 1; j++)
@@ -401,7 +413,7 @@ namespace MigSharpSQL
         {
             if (first == last && currentSubstate == 0)
             {
-                logger.Info("The database is already at specified state. No action required");
+                logger.Info(LogStrings.NoActionForTheSameState);
                 return;
             }
 
@@ -409,7 +421,7 @@ namespace MigSharpSQL
 
             if (first >= 0)
             {
-                logger.Info("Performing the upgrading scripts {0}...{1} has been started", migrationNames[first], 
+                logger.Info(LogStrings.PerformingUpgrade, migrationNames[first], 
                     migrationNames[last]);
 
                 steps = LoadScript(migrations[migrationNames[first]].UpScriptFullPath);
@@ -423,7 +435,7 @@ namespace MigSharpSQL
             }
             else
             {
-                logger.Info("Performing the upgrading scripts {0}...{1} has been started", migrationNames[first + 1],
+                logger.Info(LogStrings.PerformingUpgrade, migrationNames[first + 1],
                     migrationNames[last]);
             }
 
@@ -449,7 +461,7 @@ namespace MigSharpSQL
         /// during database communication.</exception>
         private void DoStep(IDbConnection connection, string sql, string newState, int substateNum)
         {
-            logger.Debug("Move database to state {0}, substate {1}", newState, substateNum);
+            logger.Debug(LogStrings.MovingDbState, newState, substateNum);
 
             if (provider.SupportsTransactions)
             {
@@ -511,7 +523,7 @@ namespace MigSharpSQL
             {
                 FileInfo fileInfo = new FileInfo(scriptFullPath);
 
-                logger.Debug("Loading script: {0}", fileInfo.Name);
+                logger.Debug(LogStrings.LoadingScript, fileInfo.Name);
 
                 string script = fileInfo.OpenText().ReadToEnd();
 
@@ -525,7 +537,7 @@ namespace MigSharpSQL
                     ex is IOException)
                 {
                     throw new MigrationException(
-                        string.Format("Script {0} cannot be loaded.", scriptFullPath), ex);
+                        string.Format(Strings.ScriptCannotBeLoaded, scriptFullPath), ex);
                 }
 
                 throw;

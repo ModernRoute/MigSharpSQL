@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MigSharpSQL.Resources;
+using System;
 using System.Data;
 using System.IO;
 using System.Reflection;
@@ -151,7 +152,7 @@ namespace MigSharpSQL.Providers
                     ex is MissingMethodException || ex is COMException || 
                     ex is TypeLoadException)
                 {
-                    throw new ProviderException("Cannot create instance of database connection class.", ex);
+                    throw new ProviderException(Strings.CannotInstanceDatabaseConnectionClass, ex);
                 }
 
                 throw;
@@ -177,7 +178,7 @@ namespace MigSharpSQL.Providers
                     ex is PathTooLongException)
                 {
                     throw new ProviderException(
-                        string.Format("Cannot load {0} assembly and type {1}.", 
+                        string.Format(Strings.CannotLoadAssemblyAndType, 
                         mySqlAssemblyName, mySqlConnectionTypeName), ex);
                 }
 
