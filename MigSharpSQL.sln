@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 2013
+VisualStudioVersion = 12.0.21005.1
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MigSharpSQL", "MigSharpSQL\MigSharpSQL.csproj", "{39265019-9E05-41AD-9353-DA4354C05086}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Migrate", "Migrate\Migrate.csproj", "{F00A25C9-1A3B-41EB-B26C-5E63D9D3E806}"
@@ -9,6 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MigSharpSQL.Test", "MigShar
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{266A2364-0393-4B98-A875-003F7B472832}"
 	ProjectSection(SolutionItems) = preProject
+		.nuget\MigSharpSQL.nuspec = .nuget\MigSharpSQL.nuspec
 		.nuget\NuGet.Config = .nuget\NuGet.Config
 		.nuget\NuGet.exe = .nuget\NuGet.exe
 		.nuget\NuGet.targets = .nuget\NuGet.targets
