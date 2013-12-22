@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Security;
@@ -295,7 +296,8 @@ namespace MigSharpSQL
         /// <returns>Script name.</returns>
         private string GetMigrationScriptName(string migrationName, bool isUp)
         {
-            return string.Format("{0}_{1}.sql", migrationName, isUp ? upSuffix : downSuffix);
+            return string.Format(CultureInfo.InvariantCulture,
+                "{0}_{1}.sql", migrationName, isUp ? upSuffix : downSuffix);
         }
 
         /// <summary>

@@ -88,6 +88,7 @@ namespace MigSharpSQL
             providers = new Dictionary<string, IDbProvider>();
 
             Register(new MySqlProvider());
+            Register(new SqliteProvider());
         }
     }
 }
