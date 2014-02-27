@@ -132,7 +132,7 @@ The migrate commands are:
 
 Commands parameters:
     --to &lt;state&gt;                             Wanted state. Useful for migrate command only. Optional. 
-                                             Special values: initial (before the first migration state),
-                                             last (the last migration state). Will use last if ommited.</value>
+                                             Special values: {0} (before the first migration state),
+                                             {1} (the last migration state). Will use {1} if ommited.</value>
   </data>
 </root>

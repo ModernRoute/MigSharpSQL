@@ -61,7 +61,7 @@ namespace Migrate
 
         private static void Help()
         {
-            Console.WriteLine(Strings.Usage);
+            Console.WriteLine(Strings.Usage, Migrator.InitialState, Migrator.LastState);
         }
 
         private static int GetState(CommandLineOptions options)
@@ -95,7 +95,7 @@ namespace Migrate
 
         private static int Migrate(CommandLineOptions options)
         {
-            string wantedState = options.GetOption("to","last");
+            string wantedState = options.GetOption("to",Migrator.LastState);
 
             try
             {

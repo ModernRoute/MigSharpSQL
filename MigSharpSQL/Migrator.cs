@@ -18,6 +18,9 @@ namespace MigSharpSQL
     /// </summary>
     public class Migrator
     {
+        public const string InitialState = "initial";
+        public const string LastState = "last";
+
         /// <summary>
         /// Gets database connection string.
         /// </summary>
@@ -157,9 +160,6 @@ namespace MigSharpSQL
         {
             return migrations.Keys.ToArray();
         }
-
-        private const string initialState = "initial";
-        private const string lastState = "last";
 
         private const string upSuffix = "up";
         private const string downSuffix = "down";
@@ -330,13 +330,13 @@ namespace MigSharpSQL
         /// <returns>Internal state representation.</returns>
         private string ParseState(string state)
         {
-            if (state == lastState)
+            if (state == LastState)
             {
                 string[] keys = GetMigrationNames();
 
                 if (keys.Length <= 0)
                 {
-                    state = initialState;
+                    state = InitialState;
                 }
                 else
                 {
@@ -344,7 +344,7 @@ namespace MigSharpSQL
                 }
             }
 
-            if (state == initialState)
+            if (state == InitialState)
             {
                 state = null;
             }
@@ -582,7 +582,7 @@ namespace MigSharpSQL
         /// <returns>Human readable state value.</returns>
         private string GetHumanStateName(string state)
         {
-            return state == null ? initialState : state;
+            return state == null ? InitialState : state;
         }
     }
 }
