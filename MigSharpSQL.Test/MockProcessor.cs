@@ -1,15 +1,13 @@
-﻿using System.Data;
+﻿using MigSharpSQL.Test.Provider;
+using System.Data;
 
-namespace MigSharpSQL.Test.Provider
+namespace MigSharpSQL.Test
 {
-    /// <summary>
-    /// 
-    /// </summary>
-    class MockProvider : IDbProvider
+    class MockProcessor : IDbMigrationStateProcessor
     {
-        public const string ProviderName = "Mock";
+        public const string ProcessorName = "Mock";
 
-        public MockProvider(bool supportsTransactions)
+        public MockProcessor(bool supportsTransactions)
         {
             SupportsTransactions = supportsTransactions;
         }
@@ -48,17 +46,7 @@ namespace MigSharpSQL.Test.Provider
 
         public string Name
         {
-            get { return ProviderName; }
-        }
-
-        public IDbConnection CreateConnection(string connectionString)
-        {
-            return new MockDbConnection(connectionString);
-        }
-
-        public void Load()
-        {
-            
+            get { return ProcessorName; }
         }
     }
 }

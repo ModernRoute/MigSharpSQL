@@ -1,4 +1,5 @@
-﻿using MigSharpSQL.Test.Provider;
+﻿using MigSharpSQL.Exceptions;
+using MigSharpSQL.Test.Provider;
 using NUnit.Framework;
 using System;
 using System.IO;
@@ -8,17 +9,24 @@ namespace MigSharpSQL.Test
     class MigratorTest
     {
         [Test]
-        [ExpectedException(typeof(NotSupportedException))]
+        [ExpectedException(typeof(MigrationException))]
         public void UnsupportedProvider_Fail()
         {
-            new Migrator("__UnsupportedProvider__", Constants.MockConnectionString, Constants.MigOk5);
+            new Migrator(Constants.MockConnectionString, "__UnsupportedProvider__", MockProcessor.ProcessorName, Constants.MigOk5);
+        }
+
+        [Test]
+        [ExpectedException(typeof(MigrationException))]
+        public void UnsupportedProcessor_Fail()
+        {
+            new Migrator(Constants.MockConnectionString, Constants.MockProviderName, "__UnsupportedProcessor__", Constants.MigOk5);
         }
 
         protected Migrator CreateMigrator(string migrationBulk)
         {
             string migDir = Path.Combine(Directory.GetCurrentDirectory(), Constants.MigrationDir, migrationBulk);
 
-            Migrator mig = new Migrator(MockProvider.ProviderName, Constants.MockConnectionString, migDir);
+            Migrator mig = new Migrator(Constants.MockConnectionString, Constants.MockProviderName, MockProcessor.ProcessorName, migDir);
 
             return mig;
         }

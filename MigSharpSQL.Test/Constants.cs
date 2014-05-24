@@ -5,6 +5,7 @@
         public const string MockConnectionString = "nevermind";
 
         public const string MigrationDir = "Migrations";
+        public const string MockProviderName = "MigSharpSQL.Test.Provider";
 
         public const string MigOk5 = "5_ok";
         public const string MigOk0 = "0_ok";

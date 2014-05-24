@@ -51,13 +51,19 @@
     <Compile Include="MigratorWithTransactionTest.cs" />
     <Compile Include="MigratorWithoutTransactionsTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Provider\MockDbCommand.cs" />
-    <Compile Include="Provider\MockDbConnection.cs" />
+    <Compile Include="Provider\MockClientFactory.cs" />
+    <Compile Include="Provider\MockDbCommand.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Provider\MockDbConnection.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Provider\MockDbException.cs" />
     <Compile Include="Provider\MockDbTransaction.cs" />
-    <Compile Include="Provider\MockProvider.cs" />
+    <Compile Include="MockProcessor.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="App.config" />
     <None Include="Migrations\0_ok\.keep">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

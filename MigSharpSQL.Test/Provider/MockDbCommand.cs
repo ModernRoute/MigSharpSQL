@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Data;
+using System.Data.Common;
 
 namespace MigSharpSQL.Test.Provider
 {
-    class MockDbCommand : IDbCommand
+    class MockDbCommand : DbCommand
     {
         private MockDbConnection connection;
         private MockDbTransaction transaction;
@@ -19,30 +20,48 @@ namespace MigSharpSQL.Test.Provider
             this.connection = connection;
         }
 
-        public void Cancel()
+
+        public override void Cancel()
         {
-            throw new NotSupportedException();            
+            throw new NotSupportedException();
         }
 
-        public string CommandText
-        {
-            get;
-            set;
-        }
-
-        public int CommandTimeout
+        public override string CommandText
         {
             get;
             set;
         }
 
-        public CommandType CommandType
+        public override int CommandTimeout
         {
-            get;
-            set;
+            get
+            {
+                throw new NotSupportedException();
+            }
+            set
+            {
+                throw new NotSupportedException();
+            }
         }
 
-        public IDbConnection Connection
+        public override CommandType CommandType
+        {
+            get
+            {
+                throw new NotSupportedException();
+            }
+            set
+            {
+                throw new NotSupportedException();
+            }
+        }
+
+        protected override DbParameter CreateDbParameter()
+        {
+            throw new NotSupportedException();
+        }
+
+        protected override DbConnection DbConnection
         {
             get
             {
@@ -66,49 +85,12 @@ namespace MigSharpSQL.Test.Provider
             }
         }
 
-        public IDbDataParameter CreateParameter()
-        {
-            throw new NotSupportedException();
-        }
-
-        public int ExecuteNonQuery()
-        {
-            connection.CheckOpened();
-
-            if (CommandText != null && CommandText.Trim().ToUpper() == goodQuery)
-            {
-                return 1;
-            }
-
-            throw new MockDbException(string.Format("Expected exception for query `{0}`", CommandText));
-        }
-
-        public IDataReader ExecuteReader(CommandBehavior behavior)
-        {
-            throw new NotSupportedException();
-        }
-
-        public IDataReader ExecuteReader()
-        {
-            throw new NotSupportedException();
-        }
-
-        public object ExecuteScalar()
-        {
-            throw new NotSupportedException();
-        }
-
-        public IDataParameterCollection Parameters
+        protected override DbParameterCollection DbParameterCollection
         {
             get { throw new NotSupportedException(); }
         }
 
-        public void Prepare()
-        {
-            throw new NotSupportedException();
-        }
-
-        public IDbTransaction Transaction
+        protected override DbTransaction DbTransaction
         {
             get
             {
@@ -133,7 +115,7 @@ namespace MigSharpSQL.Test.Provider
             }
         }
 
-        public UpdateRowSource UpdatedRowSource
+        public override bool DesignTimeVisible
         {
             get
             {
@@ -145,9 +127,43 @@ namespace MigSharpSQL.Test.Provider
             }
         }
 
-        public void Dispose()
+        protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
         {
-            
+            throw new NotSupportedException();
+        }
+
+        public override int ExecuteNonQuery()
+        {
+            connection.CheckOpened();
+
+            if (CommandText != null && CommandText.Trim().ToUpper() == goodQuery)
+            {
+                return 1;
+            }
+
+            throw new MockDbException(string.Format("Expected exception for query `{0}`", CommandText));
+        }
+
+        public override object ExecuteScalar()
+        {
+            throw new NotSupportedException();
+        }
+
+        public override void Prepare()
+        {
+            throw new NotSupportedException();
+        }
+
+        public override UpdateRowSource UpdatedRowSource
+        {
+            get
+            {
+                throw new NotSupportedException();
+            }
+            set
+            {
+                throw new NotSupportedException();
+            }
         }
     }
 }

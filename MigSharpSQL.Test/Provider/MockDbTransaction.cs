@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Data;
+using System.Data.Common;
 
 namespace MigSharpSQL.Test.Provider
 {
-    class MockDbTransaction : IDbTransaction
+    class MockDbTransaction : DbTransaction
     {
         private MockDbConnection connection;
 
@@ -31,30 +32,25 @@ namespace MigSharpSQL.Test.Provider
             MigrationSubstate = connection.MigrationSubstate;
         }
 
-        public void Commit()
+        public override void Commit()
         {
             connection.MigrationState = MigrationState;
             connection.MigrationSubstate = MigrationSubstate;
         }
 
-        public IDbConnection Connection
+        protected override DbConnection DbConnection
         {
             get { return connection; }
         }
 
-        public IsolationLevel IsolationLevel
+        public override IsolationLevel IsolationLevel
         {
             get { throw new NotSupportedException(); }
         }
 
-        public void Rollback()
+        public override void Rollback()
         {
             
-        }
-
-        public void Dispose()
-        {
-           
         }
     }
 }

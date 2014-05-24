@@ -7,39 +7,23 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security;
 
-namespace MigSharpSQL.Providers
+namespace MigSharpSQL.Processors
 {
     /// <summary>
-    /// Sqlite migration and database connection provider.
+    /// Sqlite migration state processor.
     /// </summary>
-    internal class SqliteProvider : IDbProvider
+    internal class SqliteMigrationProcessor : IDbMigrationStateProcessor
     {
-        /// <summary>
-        /// Gets true. The Sqlite server does support transactions.
-        /// </summary>
         public bool SupportsTransactions
         {
             get { return true; }
         }
 
-
-        /// <summary>
-        /// Gets 'Sqlite' string as provider name.
-        /// </summary>
         public string Name
         {
             get { return "Sqlite"; }
         }
 
-        /// <summary>
-        /// Gets Sqlite database migration state.
-        /// </summary>
-        /// <param name="connection">Opened connection to Sqlite database server.</param>
-        /// <param name="substate">When this method returns it contains the substate value.</param>
-        /// <returns>Current database state. Null means initial state (empty database). 
-        /// Substate value in that case is nevermind.</returns>
-        /// <exception cref="System.Data.Common.DbException">When error occurs 
-        /// during Sqlite database communication.</exception>
         public string GetState(IDbConnection connection, out int substate)
         {
             using (IDbCommand command = connection.CreateCommand())
@@ -87,15 +71,6 @@ namespace MigSharpSQL.Providers
             }
         }
 
-        /// <summary>
-        /// Sets Sqlite database migration state.
-        /// </summary>
-        /// <param name="connection">Opened connection to Sqlite database.</param>        
-        /// <param name="transaction">Started transaction for <paramref name="connection"/>.</param>
-        /// <param name="state">New state value.</param>
-        /// <param name="substate">New substate value.</param>
-        /// <exception cref="System.Data.Common.DbException">When error occurs 
-        /// during Sqlite database communication.</exception>
         public void SetState(IDbConnection connection, IDbTransaction transaction, string state, int substate)
         {
             using (IDbCommand command = connection.CreateCommand())
@@ -148,64 +123,7 @@ namespace MigSharpSQL.Providers
         {
             return str.Replace("\'","\'\'");
         }
-
-        /// <summary>
-        /// Creates and opens connection to Sqlite database.
-        /// </summary>
-        /// <param name="connectionString">Sqlite connection string to connect to.</param>
-        /// <returns>Sqlite database connection.</returns>
-        /// <exception cref="ProviderException">If Sqlite database connection class cannot be instantiated.</exception>
-        public IDbConnection CreateConnection(string connectionString)
-        {
-            try
-            {
-                return (IDbConnection)Activator.CreateInstance(sqliteConnectionType, connectionString);
-            }
-            catch (Exception ex)
-            {
-                if (ex is ArgumentException || ex is NotSupportedException ||
-                    ex is TargetInvocationException || ex is MethodAccessException ||
-                    ex is MemberAccessException || ex is InvalidComObjectException ||
-                    ex is MissingMethodException || ex is COMException || 
-                    ex is TypeLoadException)
-                {
-                    throw new ProviderException(Strings.CannotInstanceDatabaseConnectionClass, ex);
-                }
-
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Loads System.Data.SQLite.dll assembly and stores the System.Data.SQLite.SQLiteConnection type.
-        /// </summary>
-        /// <exception cref="ProviderException">When assembly and type of Sqlite database 
-        /// connection cannot be taken.</exception>
-        public void Load()
-        {
-            try
-            {
-                Assembly assembly = Assembly.LoadFrom(sqliteAssemblyName);
-                sqliteConnectionType = assembly.GetType(sqliteConnectionTypeName);
-            }
-            catch (Exception ex)
-            {
-                if (ex is FileNotFoundException || ex is FileLoadException ||
-                    ex is BadImageFormatException || ex is SecurityException ||
-                    ex is PathTooLongException)
-                {
-                    throw new ProviderException(
-                        string.Format(Strings.CannotLoadAssemblyAndType, 
-                        sqliteAssemblyName, sqliteConnectionTypeName), ex);
-                }
-
-                throw;
-            }
-        }
-
-        private const string sqliteAssemblyName = "System.Data.SQLite.dll";
-        private const string sqliteConnectionTypeName = "System.Data.SQLite.SQLiteConnection";
-
+             
         private const string viewExistsQuery = "SELECT COUNT(*) FROM sqlite_master " + 
             "WHERE type = 'view' AND name = '__MigrationState'";
         private const string getStateQuery = "SELECT `state`,`substate` FROM `__MigrationState`";
@@ -214,7 +132,5 @@ namespace MigSharpSQL.Providers
             "AS SELECT {0} AS `state`, {1} AS `substate`";
         private const string stateParamName = "@state";
         private const string substateParamName = "@substate";
-
-        private Type sqliteConnectionType;
     }
 }

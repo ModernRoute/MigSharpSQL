@@ -87,8 +87,9 @@ namespace Migrate
         private static Migrator MigratorFromConfig()
         {
             return new Migrator(
-                ConfigurationManager.AppSettings["provider"], 
                 ConfigurationManager.AppSettings["connection-string"], 
+                ConfigurationManager.AppSettings["provider"],
+                ConfigurationManager.AppSettings["processor"], 
                 ConfigurationManager.AppSettings["directory"]
                 );            
         }

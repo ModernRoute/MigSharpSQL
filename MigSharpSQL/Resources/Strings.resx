@@ -117,23 +117,23 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="CannotInstanceDatabaseConnectionClass" xml:space="preserve">
-    <value>Cannot create instance of database connection class.</value>
-  </data>
-  <data name="CannotLoadAssemblyAndType" xml:space="preserve">
-    <value>Cannot load {0} assembly and type {1}.</value>
-  </data>
   <data name="CannotLoadMigrations" xml:space="preserve">
     <value>Cannot load migrations.</value>
   </data>
   <data name="MigrationScriptIsAbsent" xml:space="preserve">
     <value>Migration script {0} is absent.</value>
   </data>
-  <data name="ProviderIsNotSupported" xml:space="preserve">
-    <value>Provider {0} is not supported. The following providers are supported: {1}.</value>
+  <data name="ProcessorCannotBeLoaded" xml:space="preserve">
+    <value>Migration processor {0} cannot be loaded.</value>
   </data>
-  <data name="ProviderNameCannotBeNull" xml:space="preserve">
+  <data name="ProcessorIsNotSupported" xml:space="preserve">
+    <value>Processor is not supported.</value>
+  </data>
+  <data name="ProcessorNameCannotBeNull" xml:space="preserve">
     <value>Provider name cannot be null.</value>
+  </data>
+  <data name="ProviderCannotBeLoaded" xml:space="preserve">
+    <value>Provider {0} cannot be loaded.</value>
   </data>
   <data name="ScriptCannotBeLoaded" xml:space="preserve">
     <value>Script {0} cannot be loaded.</value>

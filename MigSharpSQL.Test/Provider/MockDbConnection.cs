@@ -1,14 +1,15 @@
 ﻿using System;
 using System.Data;
+using System.Data.Common;
 
 namespace MigSharpSQL.Test.Provider
 {
-    class MockDbConnection : IDbConnection
+    class MockDbConnection : DbConnection
     {
         private const string dbName = "DATABASE";
-        
+
         private bool opened = false;
-        
+
         #region Migration metadata
 
         public static string MigrationStateStatic
@@ -48,27 +49,14 @@ namespace MigSharpSQL.Test.Provider
         }
         #endregion
 
-        public MockDbConnection(string connectionString)
-        {
-            if (connectionString == null)
-            {
-                throw new ArgumentNullException("connectionString");
-            }
-        }
-
-        public IDbTransaction BeginTransaction(IsolationLevel il)
-        {
-            throw new NotSupportedException();
-        }
-
-        public IDbTransaction BeginTransaction()
+        protected override DbTransaction BeginDbTransaction(IsolationLevel isolationLevel)
         {
             CheckOpened();
 
             return new MockDbTransaction(this);
         }
 
-        public void ChangeDatabase(string databaseName)
+        public override void ChangeDatabase(string databaseName)
         {
             throw new NotSupportedException();
         }
@@ -81,51 +69,45 @@ namespace MigSharpSQL.Test.Provider
             }
         }
 
-        public void Close()
+        public override void Close()
         {
             opened = false;
         }
 
-        public string ConnectionString
+        public override string ConnectionString
         {
-            get
-            {
-                throw new NotSupportedException();
-            }
-            set
-            {
-                throw new NotSupportedException();
-            }
+            get;
+            set;
         }
 
-        public int ConnectionTimeout
-        {
-            get { throw new NotSupportedException(); }
-        }
-
-        public IDbCommand CreateCommand()
+        protected override DbCommand CreateDbCommand()
         {
             return new MockDbCommand(this);
         }
 
-        public string Database
+        public override string DataSource
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public override string Database
         {
             get { return dbName; }
         }
 
-        public void Open()
+        public override void Open()
         {
             opened = true;
         }
 
-        public ConnectionState State
+        public override string ServerVersion
         {
-            get { return opened ? ConnectionState.Open : ConnectionState.Closed; }
+            get { throw new NotImplementedException(); }
         }
 
-        public void Dispose()
+        public override ConnectionState State
         {
-            Close();
+            get { return opened ? ConnectionState.Open : ConnectionState.Closed; }
         }
     }
 }

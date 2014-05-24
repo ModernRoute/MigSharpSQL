@@ -117,23 +117,23 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="CannotInstanceDatabaseConnectionClass" xml:space="preserve">
-    <value>Невозможно создать экземпляр класса подключения к базе данных.</value>
-  </data>
-  <data name="CannotLoadAssemblyAndType" xml:space="preserve">
-    <value>Невозможно загрузить сборку {0} и тип {1}.</value>
-  </data>
   <data name="CannotLoadMigrations" xml:space="preserve">
     <value>Невозможно загрузить миграции.</value>
   </data>
   <data name="MigrationScriptIsAbsent" xml:space="preserve">
     <value>Скрипт {0} отсутствует.</value>
   </data>
-  <data name="ProviderIsNotSupported" xml:space="preserve">
-    <value>Провайдер {0} не поддерживается. Доступны только следующие провайдеры: {1}.</value>
+  <data name="ProcessorCannotBeLoaded" xml:space="preserve">
+    <value>Невозможно загрузить миграционный процессор {0}.</value>
   </data>
-  <data name="ProviderNameCannotBeNull" xml:space="preserve">
-    <value>Имя провайдерам не может быть пустым.</value>
+  <data name="ProcessorIsNotSupported" xml:space="preserve">
+    <value>Процессор не поддерживается.</value>
+  </data>
+  <data name="ProcessorNameCannotBeNull" xml:space="preserve">
+    <value>Имя процессора не может быть пустым.</value>
+  </data>
+  <data name="ProviderCannotBeLoaded" xml:space="preserve">
+    <value>Невозможно загрузить провайдер {0}.</value>
   </data>
   <data name="ScriptCannotBeLoaded" xml:space="preserve">
     <value>Сценарий {0} не может быть загружен.</value>

@@ -3,9 +3,9 @@
 namespace MigSharpSQL
 {
     /// <summary>
-    /// Database connection and migration metainfo provider.
+    /// Migration state processor.
     /// </summary>
-    public interface IDbProvider
+    public interface IDbMigrationStateProcessor
     {
         /// <summary>
         /// Gets whether transactions are supported or not.
@@ -13,7 +13,7 @@ namespace MigSharpSQL
         bool SupportsTransactions { get; }
 
         /// <summary>
-        /// Gets unique provider name.
+        /// Gets unique processor name.
         /// </summary>
         string Name { get; }
 
@@ -38,21 +38,5 @@ namespace MigSharpSQL
         /// <exception cref="System.Data.Common.DbException">When error occurs 
         /// during database communication.</exception>        
         void SetState(IDbConnection connection, IDbTransaction transaction, string state, int substate);
-
-        /// <summary>
-        /// Creates and opens connection database.
-        /// </summary>
-        /// <param name="connectionString">Connection string to connect to.</param>
-        /// <returns>Database connection.</returns>
-        /// <exception cref="ProviderException">When database 
-        /// connection class class cannot be instantiated.</exception>
-        IDbConnection CreateConnection(string connectionString);
-
-        /// <summary>
-        /// Does provider specific actions such as loading assembly and types.
-        /// </summary>
-        /// <exception cref="ProviderException">When assembly and type of database 
-        /// connection cannot be taken.</exception>
-        void Load();
     }
 }

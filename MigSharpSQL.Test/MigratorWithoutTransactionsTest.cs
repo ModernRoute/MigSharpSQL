@@ -9,7 +9,7 @@ namespace MigSharpSQL.Test
         public MigratorWithoutTransactionsTest()
             : base()
         {
-            DbProviderFactory.Register(new MockProvider(false));
+            DbMigrationStateProcessorFactory.Register(new MockProcessor(false));
         }
 
         [Test]
