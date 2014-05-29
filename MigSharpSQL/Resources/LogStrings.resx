@@ -117,6 +117,12 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="CannotFetchCurrentState" xml:space="preserve">
+    <value>Cannot fetch the current state: {0}.</value>
+  </data>
+  <data name="CurrentState" xml:space="preserve">
+    <value>Current state: {0}</value>
+  </data>
   <data name="DbStateSubstateInfo" xml:space="preserve">
     <value>The current database state is {0}. The substate is {1}.</value>
   </data>

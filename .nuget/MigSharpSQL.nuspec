@@ -18,8 +18,5 @@
   <files>
     <file src="..\MigSharpSQL\bin\Release\MigSharpSQL.dll" target="lib\net40" />
     <file src="..\MigSharpSQL\bin\Release\**\MigSharpSQL.resources.dll" target="lib\net40" />
-    <file src="..\Migrate\bin\Release\Migrate.exe" target="tools\net40" />
-    <file src="..\Migrate\bin\Release\**\Migrate.resources.dll" target="tools\net40" />
-    <file src="..\Migrate\bin\Release\Migrate.exe.config" target="tools\net40" />
   </files>  
 </package>

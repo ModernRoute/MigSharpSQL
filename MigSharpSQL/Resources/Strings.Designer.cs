@@ -70,11 +70,47 @@ namespace MigSharpSQL.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Cannot migrate to state {0} since error: {1}..
+        /// </summary>
+        internal static string CannotMigrateToStateSinceError {
+            get {
+                return ResourceManager.GetString("CannotMigrateToStateSinceError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Connection string with name {0} is absent in {1} section..
+        /// </summary>
+        internal static string ConnStringIsAbsentInAppConfig {
+            get {
+                return ResourceManager.GetString("ConnStringIsAbsentInAppConfig", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Key {0} is absent in {1} section..
+        /// </summary>
+        internal static string KeyIsAbsentInAppConfig {
+            get {
+                return ResourceManager.GetString("KeyIsAbsentInAppConfig", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Migration script {0} is absent..
         /// </summary>
         internal static string MigrationScriptIsAbsent {
             get {
                 return ResourceManager.GetString("MigrationScriptIsAbsent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to &apos;{0}&apos; is not a migrate command. See &apos;{1}&apos;..
+        /// </summary>
+        internal static string NotMigrateCommand {
+            get {
+                return ResourceManager.GetString("NotMigrateCommand", resourceCulture);
             }
         }
         
@@ -147,6 +183,24 @@ namespace MigSharpSQL.Resources {
         internal static string UnknownDatabaseState {
             get {
                 return ResourceManager.GetString("UnknownDatabaseState", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to usage: migrate &lt;command&gt; &lt;args&gt;
+        ///
+        ///The migrate commands are:
+        ///    state    Get current database state
+        ///    migrate  Migrate database to specified state
+        ///
+        ///Commands parameters:
+        ///    --to &lt;state&gt;                             Wanted state. Useful for migrate command only. Optional. 
+        ///                                             Special values: {0} (before the first migration state),
+        ///                                             {1} (the last migration state). Will use {1} if ommited..
+        /// </summary>
+        internal static string Usage {
+            get {
+                return ResourceManager.GetString("Usage", resourceCulture);
             }
         }
     }

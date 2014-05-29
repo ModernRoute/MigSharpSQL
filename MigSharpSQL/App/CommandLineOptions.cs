@@ -1,11 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Diagnostics.CodeAnalysis;
 
-namespace Migrate.Util
+namespace MigSharpSQL.App
 {
     internal class CommandLineOptions
     {
@@ -32,7 +28,7 @@ namespace Migrate.Util
             Options = new Dictionary<string, string>();
         }
 
-        public string GetOption(string key, string defaultValue)
+        public string GetOption(string key, string defaultValue = null)
         {
             if (!Options.ContainsKey(key))
             {

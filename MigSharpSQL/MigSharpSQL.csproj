@@ -38,6 +38,7 @@
       <HintPath>..\packages\NLog.2.1.0\lib\net45\NLog.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -46,6 +47,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="App\CommandLineOptions.cs" />
+    <Compile Include="App\ConsoleApp.cs" />
     <Compile Include="Exceptions\MigrationException.cs" />
     <Compile Include="DbMigrationStateProcessorFactory.cs" />
     <Compile Include="IDbMigrationStateProcessor.cs" />

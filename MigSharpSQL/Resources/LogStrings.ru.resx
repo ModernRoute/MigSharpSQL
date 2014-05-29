@@ -117,6 +117,12 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="CannotFetchCurrentState" xml:space="preserve">
+    <value>Невозможно получить текущее состояние: {0}.</value>
+  </data>
+  <data name="CurrentState" xml:space="preserve">
+    <value>Текущее состояние: {0}</value>
+  </data>
   <data name="DbStateSubstateInfo" xml:space="preserve">
     <value>Текущее состояние базы данных {0}. Текущее внутренее состояние {1}.</value>
   </data>

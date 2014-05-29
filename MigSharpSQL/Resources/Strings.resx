@@ -120,8 +120,20 @@
   <data name="CannotLoadMigrations" xml:space="preserve">
     <value>Cannot load migrations.</value>
   </data>
+  <data name="CannotMigrateToStateSinceError" xml:space="preserve">
+    <value>Cannot migrate to state {0} since error: {1}.</value>
+  </data>
+  <data name="ConnStringIsAbsentInAppConfig" xml:space="preserve">
+    <value>Connection string with name {0} is absent in {1} section.</value>
+  </data>
+  <data name="KeyIsAbsentInAppConfig" xml:space="preserve">
+    <value>Key {0} is absent in {1} section.</value>
+  </data>
   <data name="MigrationScriptIsAbsent" xml:space="preserve">
     <value>Migration script {0} is absent.</value>
+  </data>
+  <data name="NotMigrateCommand" xml:space="preserve">
+    <value>'{0}' is not a migrate command. See '{1}'.</value>
   </data>
   <data name="ProcessorCannotBeLoaded" xml:space="preserve">
     <value>Migration processor {0} cannot be loaded.</value>
@@ -146,5 +158,17 @@
   </data>
   <data name="UnknownDatabaseState" xml:space="preserve">
     <value>Unknown database state {0}.</value>
+  </data>
+  <data name="Usage" xml:space="preserve">
+    <value>usage: migrate &lt;command&gt; &lt;args&gt;
+
+The migrate commands are:
+    state    Get current database state
+    migrate  Migrate database to specified state
+
+Commands parameters:
+    --to &lt;state&gt;                             Wanted state. Useful for migrate command only. Optional. 
+                                             Special values: {0} (before the first migration state),
+                                             {1} (the last migration state). Will use {1} if ommited.</value>
   </data>
 </root>
