@@ -14,9 +14,9 @@ namespace MigSharpSQL.App
 {
     public class ConsoleApp
     {
-        private const int _SuccessExitCode = 0x0;
-        private const int _InvalidArgumentsExitCode = 0x1;
-        private const int _FailedMigrationExitCode = 0x10;
+        public const int SuccessExitCode = 0x0;
+        public const int InvalidArgumentsExitCode = 0x1;
+        public const int FailedMigrationExitCode = 0x10;
 
         private const string _DirectoryKeyCmdLineOptionName = "DirectoryKey";
         private const string _ConnectionStringNameKeyCmdLineOptionName = "ConnectionStringNameKey";
@@ -24,7 +24,7 @@ namespace MigSharpSQL.App
         
         private static Logger _Logger = LogManager.GetCurrentClassLogger();
 
-        public static void EntryPoint(string configDirectoryKey, 
+        public static int EntryPoint(string configDirectoryKey, 
             string configConnectionStringNameKey, 
             string configProcessorKey, string[] args)
         {
@@ -44,10 +44,13 @@ namespace MigSharpSQL.App
             }
 
             CommandLineOptions options;
+            
             if (!ParseArgs(args, out options))
             {
-                Environment.ExitCode = _InvalidArgumentsExitCode;
-                return;
+                Console.WriteLine("migrate: {0}",
+                    string.Format(Strings.NotMigrateCommand, options.Command, "migrate help"));
+
+                return InvalidArgumentsExitCode;
             }
 
             options.Options[_DirectoryKeyCmdLineOptionName] = configDirectoryKey;
@@ -57,15 +60,15 @@ namespace MigSharpSQL.App
             switch (options.Command)
             {
                 case "state":
-                    Environment.ExitCode = GetState(options);
-                    break;
+                    return GetState(options);
                 case "migrate":
-                    Environment.ExitCode = Migrate(options);
-                    break;
+                    return Migrate(options);
                 case "help":
                 case "--help":
                     Help();
-                    break;
+                    return SuccessExitCode;
+                default:
+                    return InvalidArgumentsExitCode; // unreachable
             }
         }
 
@@ -85,12 +88,12 @@ namespace MigSharpSQL.App
 
                 _Logger.Info(LogStrings.CurrentState, state);
 
-                return _SuccessExitCode;
+                return SuccessExitCode;
             }
             catch (Exception ex)
             {
                 _Logger.Error(LogStrings.CannotFetchCurrentState, ex);
-                return _FailedMigrationExitCode;
+                return FailedMigrationExitCode;
             }
         }
 
@@ -153,12 +156,12 @@ namespace MigSharpSQL.App
 
                 migrator.MigrateTo(wantedState.ToLower());
 
-                return _SuccessExitCode;
+                return SuccessExitCode;
             }
             catch (Exception ex)
             {
                 Console.WriteLine(Strings.CannotMigrateToStateSinceError, wantedState, ex);
-                return _FailedMigrationExitCode;
+                return FailedMigrationExitCode;
             }
         }
 
@@ -213,8 +216,6 @@ namespace MigSharpSQL.App
                 case "migrate":
                     return true;
                 default:
-                    Console.WriteLine("migrate: {0}",
-                        string.Format(Strings.NotMigrateCommand, options.Command, "migrate help"));
                     return false;
             }
         }

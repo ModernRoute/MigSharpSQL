@@ -46,6 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="App\ConsoleAppTest.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="MigratorTest.cs" />
     <Compile Include="MigratorWithTransactionTest.cs" />
