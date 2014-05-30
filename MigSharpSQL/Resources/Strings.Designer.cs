@@ -151,6 +151,15 @@ namespace MigSharpSQL.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Attribute providerName is absent..
+        /// </summary>
+        internal static string ProviderNameIsAbsent {
+            get {
+                return ResourceManager.GetString("ProviderNameIsAbsent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Script {0} cannot be loaded..
         /// </summary>
         internal static string ScriptCannotBeLoaded {

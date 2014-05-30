@@ -147,6 +147,9 @@
   <data name="ProviderCannotBeLoaded" xml:space="preserve">
     <value>Provider {0} cannot be loaded.</value>
   </data>
+  <data name="ProviderNameIsAbsent" xml:space="preserve">
+    <value>Attribute providerName is absent.</value>
+  </data>
   <data name="ScriptCannotBeLoaded" xml:space="preserve">
     <value>Script {0} cannot be loaded.</value>
   </data>

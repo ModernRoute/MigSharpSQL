@@ -147,6 +147,9 @@
   <data name="ProviderCannotBeLoaded" xml:space="preserve">
     <value>Невозможно загрузить провайдер {0}.</value>
   </data>
+  <data name="ProviderNameIsAbsent" xml:space="preserve">
+    <value>Атрибут providerName отсутствует.</value>
+  </data>
   <data name="ScriptCannotBeLoaded" xml:space="preserve">
     <value>Сценарий {0} не может быть загружен.</value>
   </data>

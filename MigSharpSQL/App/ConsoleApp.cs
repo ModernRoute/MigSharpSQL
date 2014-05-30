@@ -140,6 +140,12 @@ namespace MigSharpSQL.App
                     Strings.KeyIsAbsentInAppConfig, directoryNameKey, appSettingsSection));
             }
 
+            if (connStringSettings.ProviderName == null)
+            {
+                throw new ArgumentException(string.Format(CultureInfo.CurrentCulture,
+                    Strings.ProviderNameIsAbsent));
+            }
+
             return new Migrator(connStringSettings.ConnectionString,
                                 connStringSettings.ProviderName,
                                 migrationProcessorName,

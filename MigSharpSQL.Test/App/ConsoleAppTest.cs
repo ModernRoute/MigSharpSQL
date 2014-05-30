@@ -5,8 +5,14 @@ using System.IO;
 
 namespace MigSharpSQL.Test.App
 {
+    [TestFixture]
     class ConsoleAppTest
     {
+        public ConsoleAppTest()
+        {
+            DbMigrationStateProcessorFactory.Register(new MockProcessor(false));
+        }
+
         private string[] _Args = new string[] 
         {
             "migrate",
@@ -19,6 +25,7 @@ namespace MigSharpSQL.Test.App
         private const string _InvalidDirectoryKey = "__MigrationsDirectory__";
         private const string _ValidProcessorKey = "MigrationProcessor";
         private const string _InvalidProcessorKey = "__MigrationProcessor__";
+        private const string _ProviderLessConnectionStringKey = "ConnectionStringNoProvider";
 
         [Test]
         [ExpectedException(typeof(ArgumentNullException))]
@@ -63,6 +70,22 @@ namespace MigSharpSQL.Test.App
             int exitCode = ConsoleApp.EntryPoint(_ValidDirectoryKey, _ValidConnectionStringKey, _InvalidProcessorKey, _Args);
 
             Assert.AreEqual(ConsoleApp.FailedMigrationExitCode, exitCode);
+        }
+
+        [Test]
+        public void EntryPoint_ProviderLessConnectionString_Fail()
+        {
+            int exitCode = ConsoleApp.EntryPoint(_ValidDirectoryKey, _ProviderLessConnectionStringKey, _ValidProcessorKey, _Args);
+
+            Assert.AreEqual(ConsoleApp.FailedMigrationExitCode, exitCode);
+        }
+
+        [Test]
+        public void EntryPoint__Success()
+        {
+            int exitCode = ConsoleApp.EntryPoint(_ValidDirectoryKey, _ValidConnectionStringKey, _ValidProcessorKey, _Args);
+
+            Assert.AreEqual(ConsoleApp.SuccessExitCode, exitCode);
         }
     }
 }
