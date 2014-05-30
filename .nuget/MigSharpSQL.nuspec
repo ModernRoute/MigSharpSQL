@@ -2,10 +2,10 @@
 <package>
   <metadata>
     <id>MigSharpSQL</id>
-    <version>0.1.3</version>
+    <version>0.1.4</version>
     <title>MigSharpSQL</title>
     <authors>ModernRoute team</authors>
-    <licenseUrl>https://github.com/ModernRoute/MigSharpSQL/blob/0.1.3/COPYING</licenseUrl>
+    <licenseUrl>https://github.com/ModernRoute/MigSharpSQL/blob/0.1.4/COPYING</licenseUrl>
     <projectUrl>http://github.com/ModernRoute/MigSharpSQL</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>.NET SQL-based database migrator</description>
