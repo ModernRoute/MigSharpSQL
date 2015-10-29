@@ -1,7 +1,6 @@
 ﻿using MigSharpSQL.App;
 using NUnit.Framework;
 using System;
-using System.IO;
 
 namespace MigSharpSQL.Test.App
 {

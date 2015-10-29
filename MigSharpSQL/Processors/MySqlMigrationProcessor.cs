@@ -1,10 +1,5 @@
-﻿using MigSharpSQL.Resources;
-using System;
+﻿using System;
 using System.Data;
-using System.IO;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Security;
 
 namespace MigSharpSQL.Processors
 {
@@ -109,7 +104,7 @@ namespace MigSharpSQL.Processors
         
         private const string viewExistsQuery = "SELECT COUNT(*) FROM information_schema.VIEWS " + 
             "AS info WHERE info.TABLE_SCHEMA = DATABASE() AND info.TABLE_NAME = '__MigrationState'";
-        private const string getStateQuery = "SELECT `state`,`substate` FROM `__MigrationState`";        
+        private const string getStateQuery = "SELECT `state`,`substate` FROM `__MigrationState`";
         private const string setStateQuery = "CREATE OR REPLACE VIEW `__MigrationState` " +
             "AS SELECT @state AS `state`, @substate AS `substate`";
         private const string stateParamName = "@state";

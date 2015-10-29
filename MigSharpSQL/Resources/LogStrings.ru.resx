@@ -139,7 +139,7 @@
     <value>Процесс миграции начат.</value>
   </data>
   <data name="MovingDbState" xml:space="preserve">
-    <value>Перевод базы данных в состояние {0} и внутренее состояние  {1}.</value>
+    <value>Перевод базы данных в состояние {0} и внутренее состояние {1}.</value>
   </data>
   <data name="NoActionForTheSameState" xml:space="preserve">
     <value>База данных уже в указанном состоянии. Действия не требуются.</value>

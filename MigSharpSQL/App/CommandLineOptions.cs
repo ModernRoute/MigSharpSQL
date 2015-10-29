@@ -21,7 +21,7 @@ namespace MigSharpSQL.App
         {
             if (command == null)
             {
-                throw new ArgumentNullException("command");
+                throw new ArgumentNullException(nameof(command));
             }
 
             Command = command;

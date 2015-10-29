@@ -1,14 +1,8 @@
-﻿using MigSharpSQL.Resources;
-using NLog;
-using NLog.Config;
-using NLog.Targets;
+﻿using MigSharpSQL.Logging;
+using MigSharpSQL.Resources;
 using System;
-using System.Collections.Generic;
 using System.Configuration;
 using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MigSharpSQL.App
 {
@@ -22,7 +16,7 @@ namespace MigSharpSQL.App
         private const string _ConnectionStringNameKeyCmdLineOptionName = "ConnectionStringNameKey";
         private const string _ProcessorKeyCmdLineOptionName = "ProcessorKey";
         
-        private static Logger _Logger = LogManager.GetCurrentClassLogger();
+        private static ILogger _Logger = LoggerFactory.GetCurrentClassLogger();
 
         public static int EntryPoint(string configDirectoryKey, 
             string configConnectionStringNameKey, 
@@ -30,17 +24,17 @@ namespace MigSharpSQL.App
         {
             if (configDirectoryKey == null)
             {
-                throw new ArgumentNullException("configDirectoryKey");
+                throw new ArgumentNullException(nameof(configDirectoryKey));
             }
 
             if (configConnectionStringNameKey == null)
             {
-                throw new ArgumentNullException("configConnectionStringNameKey");
+                throw new ArgumentNullException(nameof(configConnectionStringNameKey));
             }
 
             if (configProcessorKey == null)
             {
-                throw new ArgumentNullException("configProcessorKey");
+                throw new ArgumentNullException(nameof(configProcessorKey));
             }
 
             CommandLineOptions options;

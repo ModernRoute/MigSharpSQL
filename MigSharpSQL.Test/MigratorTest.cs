@@ -1,7 +1,6 @@
 ﻿using MigSharpSQL.Exceptions;
 using MigSharpSQL.Test.Provider;
 using NUnit.Framework;
-using System;
 using System.IO;
 
 namespace MigSharpSQL.Test

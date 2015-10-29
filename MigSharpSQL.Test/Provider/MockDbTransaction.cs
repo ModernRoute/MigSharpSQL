@@ -24,7 +24,7 @@ namespace MigSharpSQL.Test.Provider
         {
             if (connection == null)
             {
-                throw new ArgumentNullException("connection");
+                throw new ArgumentNullException(nameof(connection));
             }
 
             this.connection = connection;

@@ -1,6 +1,6 @@
 ﻿using MigSharpSQL.Exceptions;
+using MigSharpSQL.Logging;
 using MigSharpSQL.Resources;
-using NLog;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -62,22 +62,22 @@ namespace MigSharpSQL
         {
             if (providerName == null)
             {
-                throw new ArgumentNullException("providerName");
+                throw new ArgumentNullException(nameof(providerName));
             }
 
             if (connectionString == null)
             {
-                throw new ArgumentNullException("connectionString");
+                throw new ArgumentNullException(nameof(connectionString));
             }
 
             if (migrationsDirectory == null)
             {
-                throw new ArgumentNullException("migrationsDirectory");
+                throw new ArgumentNullException(nameof(migrationsDirectory));
             }
 
             if (migrationProcessorName == null)
             {
-                throw new ArgumentNullException("migrationProcessorName");
+                throw new ArgumentNullException(nameof(migrationProcessorName));
             }
 
             try
@@ -119,7 +119,7 @@ namespace MigSharpSQL
         {
             if (state == null)
             {
-                throw new ArgumentNullException("state");
+                throw new ArgumentNullException(nameof(state));
             }
 
             state = ParseState(state);
@@ -190,7 +190,7 @@ namespace MigSharpSQL
         private const string _UpSuffix = "up";
         private const string _DownSuffix = "down";
         
-        private static Logger _Logger = LogManager.GetCurrentClassLogger();
+        private static ILogger _Logger = LoggerFactory.GetCurrentClassLogger();
 
         /// <summary>
         /// Checks whether substate is valid. Substate is valid if it belongs to [0;steps.Count].

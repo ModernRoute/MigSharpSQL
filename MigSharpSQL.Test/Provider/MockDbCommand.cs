@@ -14,7 +14,7 @@ namespace MigSharpSQL.Test.Provider
         {
             if (connection == null)
             {
-                throw new ArgumentNullException("connection");
+                throw new ArgumentNullException(nameof(connection));
             }
 
             this.connection = connection;
@@ -71,7 +71,7 @@ namespace MigSharpSQL.Test.Provider
             {
                 if (value == null)
                 {
-                    throw new ArgumentNullException("value");
+                    throw new ArgumentNullException(nameof(value));
                 }
 
                 if (value is MockDbConnection)

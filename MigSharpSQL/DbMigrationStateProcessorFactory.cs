@@ -1,6 +1,5 @@
 ﻿using MigSharpSQL.Processors;
 using MigSharpSQL.Resources;
-using NLog;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -24,7 +23,7 @@ namespace MigSharpSQL
         {
             if (processor == null)
             {
-                throw new ArgumentNullException("processor");
+                throw new ArgumentNullException(nameof(processor));
             }
 
             if (processor.Name == null)
@@ -51,7 +50,7 @@ namespace MigSharpSQL
         {
             if (processorName == null)
             {
-                throw new ArgumentNullException("processorName");
+                throw new ArgumentNullException(nameof(processorName));
             }
 
             lock (_Processors)
@@ -73,11 +72,6 @@ namespace MigSharpSQL
             get;
             private set;
         }
-
-        /// <summary>
-        /// Logger.
-        /// </summary>
-        private static Logger _Logger = LogManager.GetCurrentClassLogger();
 
         /// <summary>
         /// Supported processors.

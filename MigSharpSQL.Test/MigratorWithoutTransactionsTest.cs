@@ -1,5 +1,4 @@
-﻿using MigSharpSQL.Test.Provider;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 
 namespace MigSharpSQL.Test
 {

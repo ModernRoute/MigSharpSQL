@@ -1,11 +1,5 @@
-﻿using MigSharpSQL.Resources;
-using System;
-using System.Data;
+﻿using System.Data;
 using System.Globalization;
-using System.IO;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Security;
 
 namespace MigSharpSQL.Processors
 {
