@@ -89,6 +89,7 @@ namespace MigSharpSQL
 
             Register(new MySqlMigrationProcessor());
             Register(new SqliteMigrationProcessor());
+            Register(new PostgreSqlMigrationProcessor());
         }
     }
 }
