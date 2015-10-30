@@ -22,7 +22,7 @@ namespace MigSharpSQL.Processors
         {
             using (IDbCommand command = connection.CreateCommand())
             {
-                command.CommandText = viewExistsQuery;
+                command.CommandText = _ViewExistsQuery;
 
                 bool viewExists = false;
 
@@ -43,7 +43,7 @@ namespace MigSharpSQL.Processors
 
             using (IDbCommand command = connection.CreateCommand())
             {
-                command.CommandText = getStateQuery;
+                command.CommandText = _GetStateQuery;
 
                 using (IDataReader reader = command.ExecuteReader())
                 {
@@ -72,10 +72,10 @@ namespace MigSharpSQL.Processors
                 command.Connection = connection;
                 command.Transaction = transaction;
 
-                command.CommandText = setStateQuery;
+                command.CommandText = _SetStateQuery;
 
                 IDbDataParameter parameter = command.CreateParameter();
-                parameter.ParameterName = stateParamName;
+                parameter.ParameterName = _StateParamName;
                 parameter.DbType = System.Data.DbType.String;
 
                 if (state == null)
@@ -90,7 +90,7 @@ namespace MigSharpSQL.Processors
                 command.Parameters.Add(parameter);
 
                 parameter = command.CreateParameter();
-                parameter.ParameterName = substateParamName;
+                parameter.ParameterName = _SubstateParamName;
                 parameter.DbType = System.Data.DbType.Int32;
                 parameter.Value = substate;
 
@@ -102,12 +102,12 @@ namespace MigSharpSQL.Processors
             }
         }
         
-        private const string viewExistsQuery = "SELECT COUNT(*) FROM information_schema.VIEWS " + 
+        private const string _ViewExistsQuery = "SELECT COUNT(*) FROM information_schema.VIEWS " + 
             "AS info WHERE info.TABLE_SCHEMA = DATABASE() AND info.TABLE_NAME = '__MigrationState'";
-        private const string getStateQuery = "SELECT `state`,`substate` FROM `__MigrationState`";
-        private const string setStateQuery = "CREATE OR REPLACE VIEW `__MigrationState` " +
+        private const string _GetStateQuery = "SELECT `state`,`substate` FROM `__MigrationState`";
+        private const string _SetStateQuery = "CREATE OR REPLACE VIEW `__MigrationState` " +
             "AS SELECT @state AS `state`, @substate AS `substate`";
-        private const string stateParamName = "@state";
-        private const string substateParamName = "@substate";
+        private const string _StateParamName = "@state";
+        private const string _SubstateParamName = "@substate";
     }
 }

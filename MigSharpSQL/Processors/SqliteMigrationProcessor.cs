@@ -22,7 +22,7 @@ namespace MigSharpSQL.Processors
         {
             using (IDbCommand command = connection.CreateCommand())
             {
-                command.CommandText = viewExistsQuery;
+                command.CommandText = _ViewExistsQuery;
 
                 bool viewExists = false;
 
@@ -43,7 +43,7 @@ namespace MigSharpSQL.Processors
 
             using (IDbCommand command = connection.CreateCommand())
             {
-                command.CommandText = getStateQuery;
+                command.CommandText = _GetStateQuery;
 
                 using (IDataReader reader = command.ExecuteReader())
                 {
@@ -72,7 +72,7 @@ namespace MigSharpSQL.Processors
                 command.Connection = connection;
                 command.Transaction = transaction;
 
-                command.CommandText = dropViewQuery;
+                command.CommandText = _DropViewQuery;
 
                 command.Prepare();
 
@@ -84,7 +84,7 @@ namespace MigSharpSQL.Processors
                 command.Connection = connection;
                 command.Transaction = transaction;
 
-                command.CommandText = CreateSetStateQuery(setStateQueryTemplate, state, substate);
+                command.CommandText = CreateSetStateQuery(_SetStateQueryTemplate, state, substate);
 
                 command.Prepare();
 
@@ -118,13 +118,13 @@ namespace MigSharpSQL.Processors
             return str.Replace("\'","\'\'");
         }
              
-        private const string viewExistsQuery = "SELECT COUNT(*) FROM sqlite_master " + 
+        private const string _ViewExistsQuery = "SELECT COUNT(*) FROM sqlite_master " + 
             "WHERE type = 'view' AND name = '__MigrationState'";
-        private const string getStateQuery = "SELECT `state`,`substate` FROM `__MigrationState`";
-        private const string dropViewQuery = "DROP VIEW IF EXISTS `__MigrationState`";
-        private const string setStateQueryTemplate = "CREATE VIEW `__MigrationState` " +
+        private const string _GetStateQuery = "SELECT `state`,`substate` FROM `__MigrationState`";
+        private const string _DropViewQuery = "DROP VIEW IF EXISTS `__MigrationState`";
+        private const string _SetStateQueryTemplate = "CREATE VIEW `__MigrationState` " +
             "AS SELECT {0} AS `state`, {1} AS `substate`";
-        private const string stateParamName = "@state";
-        private const string substateParamName = "@substate";
+        private const string _StateParamName = "@state";
+        private const string _SubstateParamName = "@substate";
     }
 }
