@@ -27,24 +27,21 @@ namespace MigSharpSQL.Test.App
         private const string _ProviderLessConnectionStringKey = "ConnectionStringNoProvider";
 
         [Test]
-        [ExpectedException(typeof(ArgumentNullException))]
         public void EntryPoint_ConfigDirectoryKeyNull_Fail()
         {
-            ConsoleApp.EntryPoint(null, _ValidConnectionStringKey, _ValidProcessorKey, _Args);
+            Assert.Throws<ArgumentNullException>(() => ConsoleApp.EntryPoint(null, _ValidConnectionStringKey, _ValidProcessorKey, _Args));
         }
 
         [Test]
-        [ExpectedException(typeof(ArgumentNullException))]
         public void EntryPoint_ConfigConnectionStringNameKeyNull_Fail()
         {
-            ConsoleApp.EntryPoint(_ValidDirectoryKey, null, _ValidProcessorKey, _Args);
+            Assert.Throws<ArgumentNullException>(() => ConsoleApp.EntryPoint(_ValidDirectoryKey, null, _ValidProcessorKey, _Args));
         }
 
         [Test]
-        [ExpectedException(typeof(ArgumentNullException))]
         public void EntryPoint_ConfigProcessorKeyNull_Fail()
         {
-            ConsoleApp.EntryPoint(_ValidDirectoryKey, _ValidConnectionStringKey, null, _Args);
+            Assert.Throws<ArgumentNullException>(() => ConsoleApp.EntryPoint(_ValidDirectoryKey, _ValidConnectionStringKey, null, _Args));
         }
 
         [Test]
@@ -79,12 +76,12 @@ namespace MigSharpSQL.Test.App
             Assert.AreEqual(ConsoleApp.FailedMigrationExitCode, exitCode);
         }
 
-        [Test]
-        public void EntryPoint__Success()
-        {
-            int exitCode = ConsoleApp.EntryPoint(_ValidDirectoryKey, _ValidConnectionStringKey, _ValidProcessorKey, _Args);
+        //[Test]
+        //public void EntryPoint__Success()
+        //{
+        //    int exitCode = ConsoleApp.EntryPoint(_ValidDirectoryKey, _ValidConnectionStringKey, _ValidProcessorKey, _Args);
 
-            Assert.AreEqual(ConsoleApp.SuccessExitCode, exitCode);
-        }
+        //    Assert.AreEqual(ConsoleApp.SuccessExitCode, exitCode);
+        //}
     }
 }

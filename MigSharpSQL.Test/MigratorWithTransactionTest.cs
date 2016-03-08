@@ -30,17 +30,15 @@ namespace MigSharpSQL.Test
         }
 
         [Test]
-        [ExpectedException(typeof(FileNotFoundException))]
         public void LoadingMigrations_BrokenMigration_ExistNoUp()
         {
-            Migrator mig = CreateMigrator(Constants.MigNoUpScript4);
+            Assert.Throws<FileNotFoundException>(() => CreateMigrator(Constants.MigNoUpScript4));
         }
 
         [Test]
-        [ExpectedException(typeof(FileNotFoundException))]
         public void LoadingMigrations_BrokenMigration_ExistNoDown()
         {
-            Migrator mig = CreateMigrator(Constants.MigNoDownScript4);
+            Assert.Throws<FileNotFoundException>(() => CreateMigrator(Constants.MigNoDownScript4));
         }
 
         [Test]
@@ -158,17 +156,15 @@ namespace MigSharpSQL.Test
         }
 
         [Test]
-        [ExpectedException(typeof(MigrationException))]
         public void MigrationUp_InvalidSubstate_Fail()
         {
-            DoAndVerifyMigration_Success("2013-10-12_10-10", 6, "2014-10-11_00-08", 0, Constants.MigOk5);
+            Assert.Throws<MigrationException>(() => DoAndVerifyMigration_Success("2013-10-12_10-10", 6, "2014-10-11_00-08", 0, Constants.MigOk5));
         }
 
         [Test]
-        [ExpectedException(typeof(MigrationException))]
         public void MigrationDown_InvalidSubstate_Fail()
         {
-            DoAndVerifyMigration_Success("2014-10-11_00-08", 9, "2013-10-12_10-10", 0, Constants.MigOk5);
+            Assert.Throws<MigrationException>(() => DoAndVerifyMigration_Success("2014-10-11_00-08", 9, "2013-10-12_10-10", 0, Constants.MigOk5));
         }
 
         [Test]
