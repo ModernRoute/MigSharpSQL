@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MigSharpSQL.Test.Helpers;
+using System;
 using System.Data;
 using System.Data.Common;
 
@@ -10,44 +11,11 @@ namespace MigSharpSQL.Test.Provider
 
         private bool opened = false;
 
-        #region Migration metadata
-
-        public static string MigrationStateStatic
+        public MockDatabase MockDatabase
         {
             get;
-            set;
+            private set;
         }
-
-        public string MigrationState
-        {
-            get
-            {
-                return MigrationStateStatic;
-            }
-            set
-            {
-                MigrationStateStatic = value;
-            }
-        }
-
-        public static int MigrationSubstateStatic
-        {
-            get;
-            set;
-        }
-
-        public int MigrationSubstate
-        {
-            get
-            {
-                return MigrationSubstateStatic;
-            }
-            set
-            {
-                MigrationSubstateStatic = value;
-            }
-        }
-        #endregion
 
         protected override DbTransaction BeginDbTransaction(IsolationLevel isolationLevel)
         {
@@ -61,23 +29,41 @@ namespace MigSharpSQL.Test.Provider
             throw new NotSupportedException();
         }
 
+        public void CheckNotOpened()
+        {
+            if (opened)
+            {
+                throw new MockDbException("Connection to database is opened.");
+            }
+        }
+
         public void CheckOpened()
         {
             if (!opened)
             {
-                throw new MockDbException("Connection to database is not opened");
+                throw new MockDbException("Connection to database is not opened.");
             }
         }
 
         public override void Close()
         {
             opened = false;
+            MockDatabase = null;
         }
 
+        private string _ConnectionString;
         public override string ConnectionString
         {
-            get;
-            set;
+            get
+            {
+                return _ConnectionString;
+            }
+            set
+            {
+                CheckNotOpened();
+
+                _ConnectionString = value;
+            }
         }
 
         protected override DbCommand CreateDbCommand()
@@ -98,6 +84,7 @@ namespace MigSharpSQL.Test.Provider
         public override void Open()
         {
             opened = true;
+            MockDatabase = MockDatabase.GetInstance(_ConnectionString);
         }
 
         public override string ServerVersion

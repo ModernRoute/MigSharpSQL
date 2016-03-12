@@ -13,51 +13,17 @@ using System.Text.RegularExpressions;
 
 namespace MigSharpSQL
 {
-    /// <summary>
-    /// Database migrator. All migration logic is here.
-    /// </summary>
     public class Migrator
     {
-        /// <summary>
-        /// Special initial state value.
-        /// </summary>
         public const string InitialState = "initial";
-
-        /// <summary>
-        /// Alias to last state value.
-        /// </summary>
         public const string LastState = "last";
 
-        /// <summary>
-        /// Gets database connection string.
-        /// </summary>
         public string ConnectionString
         {
             get;
             private set;
         }
-
-        /// <summary>
-        /// Gets database migrations directory.
-        /// </summary>
-        public string MigrationsDirectory
-        {
-            get;
-            private set;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of <see cref="Migrator"/> class.
-        /// </summary>
-        /// <param name="connectionString">Database connection string.</param>
-        /// <param name="providerName">Database provider name.</param>
-        /// <param name="migrationProcessorName">Migration processor name.</param>
-        /// <param name="migrationsDirectory">Database migrations directory.</param>
-        /// <exception cref="ArgumentNullException">If either <paramref name="providerName"/>, 
-        /// <paramref name="connectionString"/>, <paramref name="migrationProcessorName"/> or 
-        /// <paramref name="migrationsDirectory"/> is null.</exception> 
-        /// <exception cref="MigrationException">When migrations cannot be loaded, provider or processor cannot be loaded.</exception>
-        /// <exception cref="ArgumentException">When migrations cannot be loaded.</exception>
+        
         public Migrator(string connectionString, string providerName, string migrationProcessorName, string migrationsDirectory)
         {
             if (providerName == null)
@@ -99,22 +65,9 @@ namespace MigSharpSQL
             }
 
             ConnectionString = connectionString;
-            MigrationsDirectory = migrationsDirectory;
-            _Migrations = new SortedDictionary<string, Migration>();
-
-            LoadMigrations();
+            _Migrations = LoadMigrations(migrationsDirectory);
         }
 
-        /// <summary>
-        /// Moves the database state.
-        /// </summary>
-        /// <param name="state">The new desired database state.</param>
-        /// <exception cref="ArgumentNullException">If <paramref name="state"/>
-        /// is null.</exception>
-        /// <exception cref="MigrationException">If either database state or 
-        /// <paramref name="state"/> parameter contains invalid value. It means state doesn't exist.</exception>
-        /// <exception cref="System.Data.Common.DbException">When error occurs 
-        /// during database communication.</exception>
         public void MigrateTo(string state)
         {
             if (state == null)
@@ -133,55 +86,80 @@ namespace MigSharpSQL
 
             using (IDbConnection connection = OpenConnection())
             {
+                UpgradeMigrationInfo(connection);
+
                 _Logger.Info(LogStrings.FiguringOutCurrentDbState);
 
                 int currentSubstate;
-                string currentState = GetCurrentState(connection, out currentSubstate);
+                string currentState = GetCurrentState(connection, null, out currentSubstate);
 
                 _Logger.Info(LogStrings.DbStateSubstateInfo, 
                     GetHumanStateName(currentState), currentSubstate);
 
                 int indexCurrentState = GetStateIndex(currentState, keys, Strings.UnknownDatabaseState);
 
-                // ok, everything alright, let's migrate
-
                 int diff = indexState - indexCurrentState;
 
-                // We need to up (current state was not applied correctly before)
                 if (diff >= 0)
                 {
                     Up(connection, keys, indexCurrentState, indexState, currentSubstate);
                 }
-                // We need to down
                 else
                 {
-                    Down(connection, keys, indexCurrentState, indexState + 1, currentSubstate);
+                    Down(connection, keys, indexCurrentState, indexState, currentSubstate);
                 }
             }
 
             _Logger.Info(LogStrings.MigrationCompletedSuccefully);
         }
 
-        /// <summary>
-        /// Gets current database migration state and substate
-        /// </summary>
-        /// <param name="substate">When this method returns it contains the substate value.</param>
-        /// <returns>Current database state. Null means initial state (empty database). 
-        /// Substate value in that case is nevermind.</returns>
-        /// <exception cref="System.Data.Common.DbException">When error occurs 
-        /// during database communication.</exception>
+        private void UpgradeMigrationInfo(IDbConnection connection)
+        {
+            if (_Processor.SupportsTransactions)
+            {
+                using (IDbTransaction transaction = connection.BeginTransaction(IsolationLevel.Snapshot))
+                {
+                    UpgradeMigrationInfo(connection, transaction);
+                    transaction.Commit();
+                }
+            }
+            else
+            {
+                UpgradeMigrationInfo(connection, null);
+            }
+        }
+
+        private void UpgradeMigrationInfo(IDbConnection connection, IDbTransaction transaction)
+        {
+            if (!_Processor.CheckDeprecated(connection, transaction))
+            {
+                return;
+            }
+
+            int substate;
+            string state = _Processor.GetStateObsolete(connection, out substate);
+
+            if (!_Migrations.ContainsKey(state))
+            {
+                throw new InvalidDataException(""); // TODO: message
+            }
+
+            CheckSubstateValid(state, substate, _Migrations[state].Steps.Count);
+                
+            IEnumerable<SimpleMigrationHistoryItem> appliedMigrations = 
+                _Migrations.SelectMany(MigrationToSimpleMigrationHistoryItem).TakeWhile(m => m.State != state || m.Substate != substate);
+                
+            _Processor.AddHistory(connection, transaction, appliedMigrations);
+        }
+
         public string GetCurrentState(out int substate)
         {
             using (IDbConnection connection = OpenConnection())
             {
-                return GetHumanStateName(GetCurrentState(connection, out substate));
+                return GetHumanStateName(GetCurrentState(connection, null, out substate));
             }
         }
 
-        /// <summary>
-        /// Gets migration names.
-        /// </summary>
-        /// <returns>Migrations names.</returns>
         public string[] GetMigrationNames()
         {
             return _Migrations.Keys.ToArray();
@@ -192,31 +170,16 @@ namespace MigSharpSQL
         
         private static ILogger _Logger = LoggerFactory.GetCurrentClassLogger();
 
-        /// <summary>
-        /// Checks whether substate is valid. Substate is valid if it belongs to [0;steps.Count].
-        /// </summary>
-        /// <param name="state">Migration state.</param>
-        /// <param name="substate">Migration substate.</param>
-        /// <param name="steps">Migration steps.</param>
-        /// <exception cref="MigrationException">If substate is invalid.</exception>
-        private static void CheckSubstateValid(string state, int substate, string[] steps)
+        private static void CheckSubstateValid(string state, int substate, int maxCount)
         {
-            if (substate >= steps.Length || substate < 0)
+            if (substate >= maxCount || substate < 0)
             {
                 throw new MigrationException(string.Format(
                     Strings.SubstateIsNotApplicable,
-                    steps.Length, state, substate));
+                    maxCount, state, substate));
             }
         }
 
-        /// <summary>
-        /// Returns state index in <paramref name="migrationNames" />.
-        /// </summary>
-        /// <param name="state">Migration state.</param>
-        /// <param name="migrationNames">Ascending sorted migration names.</param>
-        /// <param name="errorMsgTemplate">Error message template for exception.</param>
-        /// <returns>State index in <paramref name="migrationNames"/> array or -1 if <paramref name="state"/> is null.</returns>
-        /// <exception cref="MigrationException">If provided state doesn't exists.</exception>
         private static int GetStateIndex(string state, string[] migrationNames, string errorMsgTemplate)
         {
             int indexState;
@@ -238,40 +201,24 @@ namespace MigSharpSQL
             return indexState;
         }
 
-        /// <summary>
-        /// Database provider.
-        /// </summary>
         private readonly DbProviderFactory _Provider;
         
-        /// <summary>
-        /// Migration processor.
-        /// </summary>
         private readonly IDbMigrationStateProcessor _Processor;
         
-        /// <summary>
-        /// Migration collection.
-        /// </summary>
         private readonly SortedDictionary<string, Migration> _Migrations;
 
-        /// <summary>
-        /// Migration filename pattern.
-        /// </summary>
-        private readonly Regex _ScriptFilenamePattern = 
+        private static readonly Regex _ScriptFilenamePattern = 
             new Regex(@"(\d{4}-\d{2}-\d{2}_\d{2}-\d{2})_(" + _UpSuffix + "|" + _DownSuffix + @")\.sql",
                 RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        /// <summary>
-        /// Scans migration directory for migrations and store them in <see cref="_Migrations"/>.
-        /// </summary>
-        /// <exception cref="FileNotFoundException">If at least one migration has no either up or down script.</exception>
-        /// <exception cref="MigrationException">When migrations cannot be loaded.</exception>
-        private void LoadMigrations()
+        public static SortedDictionary<string, Migration> LoadMigrations(string migrationsDirectory)
         {
             try
             {
-                DirectoryInfo dirInfo = new DirectoryInfo(MigrationsDirectory);
-
-                _Migrations.Clear();
+                IDictionary<string, string[]> upScripts = new Dictionary<string, string[]>();
+                IDictionary<string, string[]> downScripts = new Dictionary<string, string[]>();
+                
+                DirectoryInfo dirInfo = new DirectoryInfo(migrationsDirectory);
 
                 foreach (FileInfo fileInfo in dirInfo.EnumerateFiles())
                 {
@@ -281,18 +228,44 @@ namespace MigSharpSQL
                     {
                         string migrationName = match.Groups[1].Value;
 
-                        Migration migration = GetMigration(migrationName);
+                        string script = LoadScript(fileInfo.FullName);
+                        string[] steps = script.Split(new string[] { "--//--\r\n", "--//--\n" }, StringSplitOptions.None);
 
                         if (string.Equals(_UpSuffix, match.Groups[2].Value, StringComparison.OrdinalIgnoreCase))
                         {
-                            migration.UpScriptFullPath = fileInfo.FullName;
+                            upScripts[migrationName] = steps;
                         }
                         else
                         {
-                            migration.DownScriptFullPath = fileInfo.FullName;
+                            downScripts[migrationName] = steps;
                         }
                     }
                 }
+
+                SortedDictionary<string, Migration> migrations = new SortedDictionary<string, Migration>();
+
+                foreach (string migration in upScripts.Keys.Concat(downScripts.Keys).Distinct())
+                {
+                    bool upScriptIsAbsent = !upScripts.ContainsKey(migration);
+                    bool downScriptIsAbsent = !downScripts.ContainsKey(migration);
+
+                    if (upScriptIsAbsent || downScriptIsAbsent)
+                    {
+                        throw new FileNotFoundException(
+                            string.Format(
+                                Strings.MigrationScriptIsAbsent,
+                                GetMigrationScriptName(migration, upScriptIsAbsent)
+                            )
+                        );
+                    }
+
+                    string[] upSteps = upScripts[migration];
+                    string[] downSteps = downScripts[migration];
+
+                    migrations.Add(migration, new Migration(migration, GetSteps(upSteps, downSteps)));
+                }
+
+                return migrations;
             }
             catch (Exception ex)
             {
@@ -304,61 +277,27 @@ namespace MigSharpSQL
 
                 throw;
             }
+        }
 
-            foreach (Migration migration in _Migrations.Values)
+        private static IEnumerable<MigrationStepTuple> GetSteps(string[] upSteps, string[] downSteps)
+        {
+            if (upSteps.Length != downSteps.Length)
             {
-                if (migration.UpScriptFullPath == null || migration.DownScriptFullPath == null)
-                {
-                    throw new FileNotFoundException(
-                        string.Format(
-                            Strings.MigrationScriptIsAbsent,
-                            GetMigrationScriptName(migration.Name, migration.UpScriptFullPath == null)
-                        )
-                    );
-                }
+                throw new InvalidDataException(""); // TODO: message
+            }
+
+            for (int i = 0; i < upSteps.Length; i++)
+            {
+                yield return new MigrationStepTuple(upSteps[i], downSteps[i]);
             }
         }
 
-        /// <summary>
-        /// Gets migration script name.
-        /// </summary>
-        /// <param name="migrationName">Migration name.</param>
-        /// <param name="isUp">The type of the script.</param>
-        /// <returns>Script name.</returns>
-        private string GetMigrationScriptName(string migrationName, bool isUp)
+        private static string GetMigrationScriptName(string migrationName, bool isUp)
         {
             return string.Format(CultureInfo.InvariantCulture,
                 "{0}_{1}.sql", migrationName, isUp ? _UpSuffix : _DownSuffix);
         }
 
-        /// <summary>
-        /// Gets the migration from <see cref="_Migrations" /> or creates a new one, 
-        /// add to <see cref="_Migrations"/> and returns it. 
-        /// </summary>
-        /// <param name="migrationName">Migration name. Cannot be null.</param>
-        /// <returns>Migration object associated with given name.</returns>
-        private Migration GetMigration(string migrationName)
-        {
-            Migration migration;
-
-            if (!_Migrations.ContainsKey(migrationName))
-            {
-                migration = new Migration(migrationName);
-                _Migrations.Add(migration.Name, migration);
-            }
-            else
-            {
-                migration = _Migrations[migrationName];
-            }
-
-            return migration;
-        }
-
-        /// <summary>
-        /// Gets internal state representation.
-        /// </summary>
-        /// <param name="state">Human readable state.</param>
-        /// <returns>Internal state representation.</returns>
         private string ParseState(string state)
         {
             if (state == LastState)
@@ -383,65 +322,67 @@ namespace MigSharpSQL
             return state;
         }
 
-        /// <summary>
-        /// Downgrades database.
-        /// </summary>
-        /// <param name="connection">Opened database connection.</param>
-        /// <param name="migrationNames">Migration names collection.</param>
-        /// <param name="first">Index of the first item in <paramref name="migrationNames"/>
-        /// to downgrade.</param>
-        /// <param name="last">Index of the last item in <paramref name="migrationNames"/>
-        /// to downgrade.</param>
-        /// <param name="currentSubstate">Current database substate.</param>
-        /// <exception cref="System.Data.Common.DbException">When error occurs 
-        /// during database communication.</exception>
-        /// <exception cref="MigrationException">When the migration script cannot be loaded.</exception>        
         private void Down(IDbConnection connection, string[] migrationNames, int first, int last, int currentSubstate)
         {
-            string[] steps = LoadScript(_Migrations[migrationNames[first]].DownScriptFullPath);
+            string newState = migrationNames[first];
 
-            CheckSubstateValid(migrationNames[first], currentSubstate, steps);
+            IReadOnlyList<MigrationStepTuple> steps = _Migrations[newState].Steps;
 
-            _Logger.Info(LogStrings.PerformingDowngrade, migrationNames[first], 
-                migrationNames[last]);
+            string previousState = newState;
+            int previousSubstate = currentSubstate;
 
-            for (int j = currentSubstate; j < steps.Length - 1; j++)
+            CheckSubstateValid(newState, currentSubstate, steps.Count);
+
+            string lastState = last >= 0 ? migrationNames[last] : null;
+
+            _Logger.Info(LogStrings.PerformingDowngrade, newState, GetHumanStateName(lastState));
+
+            int newSubstate;
+
+            for (int j = currentSubstate; j < steps.Count - 1; j++)
             {
-                DoStep(connection, steps[j], migrationNames[first], j + 1);
+                newSubstate = j + 1;
+
+                DoStep(connection, steps[j].Down, newState, newSubstate, previousState, previousSubstate, false);
+
+                previousState = newState;
+                previousSubstate = newSubstate;
             }
 
-            string newState = first > 0 ? migrationNames[first - 1] : null;
+            newState = first >= 0 ? migrationNames[first] : null;
+            newSubstate = 0;
 
-            DoStep(connection, steps[steps.Length - 1], newState, 0);
+            DoStep(connection, steps[steps.Count - 1].Down, newState, newSubstate, previousState, previousSubstate, false);
 
-            for (int i = first - 1; i >= last; i--)
+            previousState = newState;
+            previousSubstate = newSubstate;
+
+            for (int i = first - 1; i > last; i--)
             {
-                steps = LoadScript(_Migrations[migrationNames[i]].DownScriptFullPath);
+                newState = migrationNames[i];
+
+                steps = _Migrations[newState].Steps;
                                 
-                for (int j = 0; j < steps.Length - 1; j++)
+                for (int j = 0; j < steps.Count - 1; j++)
                 {
-                    DoStep(connection, steps[j], migrationNames[i], j + 1);
+                    newSubstate = j + 1;
+
+                    DoStep(connection, steps[j].Down, newState, newSubstate, previousState, previousSubstate, false);
+
+                    previousState = newState;
+                    previousSubstate = newSubstate;
                 }
 
                 newState = i > 0 ? migrationNames[i - 1] : null;
+                newSubstate = 0;
 
-                DoStep(connection, steps[steps.Length - 1], newState, 0);
+                DoStep(connection, steps[steps.Count - 1].Down, newState, newSubstate, previousState, previousSubstate, false);
+
+                previousState = newState;
+                previousSubstate = newSubstate;
             }
         }
 
-        /// <summary>
-        /// Upgrades database.
-        /// </summary>
-        /// <param name="connection">Opened database connection.</param>
-        /// <param name="migrationNames">Migration names collection.</param>
-        /// <param name="first">Index of the first item in <paramref name="migrationNames"/>
-        /// to upgrade.</param>
-        /// <param name="last">Index of the last item in <paramref name="migrationNames"/>
-        /// to upgrade.</param>
-        /// <param name="currentSubstate">Current database substate.</param>
-        /// <exception cref="System.Data.Common.DbException">When error occurs 
-        /// during database communication.</exception>
-        /// <exception cref="MigrationException">When the migration script cannot be loaded.</exception>
         private void Up(IDbConnection connection, string[] migrationNames, int first, int last, int currentSubstate)
         {
             if (first == last && currentSubstate == 0)
@@ -450,59 +391,62 @@ namespace MigSharpSQL
                 return;
             }
 
-            string[] steps;
+            string newState = first >= 0 ? migrationNames[first] : null;
+
+            IReadOnlyList<MigrationStepTuple> steps;
+
+            string previousState = newState;
+            int previousSubstate = currentSubstate;
+
+            _Logger.Info(LogStrings.PerformingUpgrade, GetHumanStateName(newState),
+                migrationNames[last]);
 
             if (first >= 0)
             {
-                _Logger.Info(LogStrings.PerformingUpgrade, migrationNames[first], 
-                    migrationNames[last]);
+                steps = _Migrations[newState].Steps;
 
-                steps = LoadScript(_Migrations[migrationNames[first]].UpScriptFullPath);
+                CheckSubstateValid(newState, currentSubstate, steps.Count);
 
-                CheckSubstateValid(migrationNames[first], currentSubstate, steps);
-
-                for (int j = steps.Length - currentSubstate; j < steps.Length; j++)
+                for (int j = steps.Count - currentSubstate; j < steps.Count; j++)
                 {
-                    DoStep(connection, steps[j], migrationNames[first], steps.Length - 1 - j);
+                    int substate = steps.Count - 1 - j;
+
+                    DoStep(connection, steps[j].Up, newState, substate, previousState, previousSubstate, true);
+
+                    previousState = newState;
+                    previousSubstate = substate;
                 }
-            }
-            else
-            {
-                _Logger.Info(LogStrings.PerformingUpgrade, migrationNames[first + 1],
-                    migrationNames[last]);
             }
 
             for (int i = first + 1; i <= last; i++)
             {
-                steps = LoadScript(_Migrations[migrationNames[i]].UpScriptFullPath);
+                newState = migrationNames[i];
 
-                for (int j = 0; j < steps.Length; j++)
+                steps = _Migrations[newState].Steps;
+
+                for (int j = 0; j < steps.Count; j++)
                 {
-                    DoStep(connection, steps[j], migrationNames[i], steps.Length - 1 - j);
+                    int substate = steps.Count - 1 - j;
+
+                    DoStep(connection, steps[j].Up, newState, substate, previousState, previousSubstate, true);
+
+                    previousState = newState;
+                    previousSubstate = substate;
                 }
             }
         }
 
-        /// <summary>
-        /// Runs migration query inside or outside the transaction. 
-        /// </summary>
-        /// <param name="connection">Opened database connection.</param>
-        /// <param name="sql">Query to run.</param>
-        /// <param name="newState">New state value.</param>
-        /// <param name="substateNum">New substate value.</param>
-        /// <exception cref="System.Data.Common.DbException">When error occurs 
-        /// during database communication.</exception>
-        private void DoStep(IDbConnection connection, string sql, string newState, int substateNum)
+        private void DoStep(IDbConnection connection, string sql, string newState, int newSubstate, string currentState, int currentSubstate, bool isUp)
         {
-            _Logger.Debug(LogStrings.MovingDbState, newState, substateNum);
+            _Logger.Debug(LogStrings.MovingDbState, newState, newSubstate);
 
             if (_Processor.SupportsTransactions)
             {
-                using (IDbTransaction transaction = connection.BeginTransaction())
+                using (IDbTransaction transaction = connection.BeginTransaction(IsolationLevel.Snapshot))
                 {
                     try
                     {
-                        RunStep(connection, transaction, sql, newState, substateNum);
+                        RunStep(connection, transaction, sql, newState, newSubstate, currentState, currentSubstate, isUp);
 
                         transaction.Commit();
                     }
@@ -515,23 +459,21 @@ namespace MigSharpSQL
             }
             else
             {
-                RunStep(connection, null, sql, newState, substateNum);
+                RunStep(connection, null, sql, newState, newSubstate, currentState, currentSubstate, isUp);
             }
         }
 
-        /// <summary>
-        /// Runs migration query.
-        /// </summary>
-        /// <param name="connection">Opened database connection.</param>
-        /// <param name="transaction">Started transaction for <paramref name="connection"/>.</param>
-        /// <param name="sql">Query to run.</param>
-        /// <param name="newState">New state value.</param>
-        /// <param name="substateNum">New substate value.</param>
-        /// <exception cref="System.Data.Common.DbException">When error occurs 
-        /// during database communication.</exception>
         private void RunStep(IDbConnection connection, IDbTransaction transaction, 
-            string sql, string newState, int substateNum)
+            string sql, string newState, int newSubstate, string currentState, int currentSubstate, bool isUp)
         {
+            int actualSubstate;
+            string actualState = _Processor.GetState(connection, transaction, out actualSubstate);
+
+            if (actualState != currentState || actualSubstate != currentSubstate)
+            {
+                throw new InvalidOperationException(""); // TODO: message
+            }
+
             using (IDbCommand command = connection.CreateCommand())
             {
                 command.Connection = connection;
@@ -541,16 +483,10 @@ namespace MigSharpSQL
                 command.ExecuteNonQuery();
             }
 
-            _Processor.SetState(connection, transaction, newState, substateNum);
+            _Processor.SetState(connection, transaction, newState, newSubstate, isUp);
         }
 
-        /// <summary>
-        /// Loads sql script from file and split it on the steps.
-        /// </summary>
-        /// <param name="scriptFullPath">Path to script file.</param>
-        /// <returns>Splitted sql query.</returns>
-        /// <exception cref="MigrationException">When the script cannot be loaded.</exception>
-        private string[] LoadScript(string scriptFullPath)
+        private static string LoadScript(string scriptFullPath)
         {
             try
             {
@@ -558,31 +494,19 @@ namespace MigSharpSQL
 
                 _Logger.Debug(LogStrings.LoadingScript, fileInfo.Name);
 
-                string script = fileInfo.OpenText().ReadToEnd();
-
-                return script.Split(new string[] { "--//--\r\n", "--//--\n" }, StringSplitOptions.None);
+                return fileInfo.OpenText().ReadToEnd();
             }
-            catch (Exception ex)
+            catch (Exception ex) when
+                (ex is SecurityException || ex is UnauthorizedAccessException ||
+                        ex is PathTooLongException || ex is DirectoryNotFoundException ||
+                        ex is FileNotFoundException || ex is OutOfMemoryException ||
+                        ex is IOException)
             {
-                if (ex is SecurityException || ex is UnauthorizedAccessException ||
-                    ex is PathTooLongException || ex is DirectoryNotFoundException ||
-                    ex is FileNotFoundException || ex is OutOfMemoryException ||
-                    ex is IOException)
-                {
-                    throw new MigrationException(
-                        string.Format(Strings.ScriptCannotBeLoaded, scriptFullPath), ex);
-                }
-
-                throw;
+                throw new MigrationException(
+                    string.Format(Strings.ScriptCannotBeLoaded, scriptFullPath), ex);
             }
         }
 
-        /// <summary>
-        /// Opens database connection using <see cref="ConnectionString"/>.
-        /// </summary>
-        /// <returns>Opened database connection.</returns>
-        /// <exception cref="System.Data.Common.DbException">When error occurs 
-        /// during database communication.</exception>
         private IDbConnection OpenConnection()
         {
             IDbConnection connection = _Provider.CreateConnection();
@@ -592,25 +516,110 @@ namespace MigSharpSQL
             return connection;
         }
 
-        /// <summary>
-        /// Gets database migration state.
-        /// </summary>
-        /// <param name="connection">Opened connection to database.</param>
-        /// <param name="substate">When this method returns it contains the substate value.</param>
-        /// <returns>Current database state. Null means initial state (empty database). 
-        /// Substate value in that case is nevermind.</returns>
-        /// <exception cref="System.Data.Common.DbException">When error occurs 
-        /// during database communication.</exception>
-        private string GetCurrentState(IDbConnection connection, out int substate)
+        private string GetCurrentState(IDbConnection connection, IDbTransaction transaction, out int substate)
         {
-            return _Processor.GetState(connection, out substate);
+            return _Processor.GetState(connection, transaction, out substate);
         }
 
-        /// <summary>
-        /// Gets human readable database state.
-        /// </summary>
-        /// <param name="state">Internal state value.</param>
-        /// <returns>Human readable state value.</returns>
+        private void CheckHistory(IDbConnection connection)
+        {
+            Stack<MigrationHistoryItem> appliedMigrations = new Stack<MigrationHistoryItem>();
+
+            foreach (MigrationHistoryItem item in _Processor.EnumerateHistory(connection))
+            {
+                MigrationHistoryItem lastItem = appliedMigrations.Count == 0 ? null : appliedMigrations.Peek();
+
+                if (item.IsUp)
+                {
+                    if (lastItem != null)
+                    {
+                        if (item.State == lastItem.State)
+                        {
+                            if (item.Substate + 1 != lastItem.Substate)
+                            {
+                                throw new InvalidDataException(""); // TODO: message
+                            }
+                        }
+                        else
+                        {
+                            if (string.Compare(item.State, lastItem.State) <= 0)
+                            {
+                                throw new InvalidDataException(""); // TODO: message
+                            }
+
+                            if (lastItem.Substate != 0)
+                            {
+                                throw new InvalidDataException(""); // TODO: message
+                            }
+                        }
+                    }
+
+                    appliedMigrations.Push(item);
+                }
+                else
+                {
+                    if (lastItem == null)
+                    {
+                        throw new InvalidDataException(""); // TODO: message
+                    }
+
+                    if (lastItem.State != lastItem.State || lastItem.Substate != lastItem.Substate)
+                    {
+                        throw new InvalidDataException(""); // TODO: message
+                    }
+
+                    appliedMigrations.Pop();
+                }
+            }
+
+            CheckHistory(_Migrations.SelectMany(MigrationToMigrationHistoryItem), appliedMigrations);
+        }
+
+        private void CheckHistory(IEnumerable<MigrationHistoryItem> migrations, IEnumerable<MigrationHistoryItem> migrationHistory)
+        {
+            using (IEnumerator<MigrationHistoryItem> enumerator1 = migrations.GetEnumerator())
+            {
+                using (IEnumerator<MigrationHistoryItem> enumerator2 = migrationHistory.GetEnumerator())
+                {
+                    bool hasNext1 = enumerator1.MoveNext();
+                    bool hasNext2 = enumerator2.MoveNext();
+
+                    while (hasNext1 && hasNext2)
+                    {
+                        if (enumerator1.Current.State != enumerator2.Current.State ||
+                            enumerator1.Current.Substate != enumerator2.Current.Substate)
+                        {
+                            throw new InvalidDataException(""); // TODO: message
+                        }
+
+                        hasNext1 = enumerator1.MoveNext();
+                        hasNext2 = enumerator2.MoveNext();
+                    }
+                    
+                    if (hasNext2)
+                    {
+                        throw new InvalidDataException(""); // TODO: message
+                    }
+                }
+            }
+        }
+
+        private IEnumerable<MigrationHistoryItem> MigrationToMigrationHistoryItem(KeyValuePair<string, Migration> migration)
+        {
+            for (int i = migration.Value.Steps.Count - 1; i >= 0; i--)
+            {
+                yield return new MigrationHistoryItem(DateTime.UtcNow, migration.Value.Name, i, true);
+            }
+        }
+
+        private IEnumerable<SimpleMigrationHistoryItem> MigrationToSimpleMigrationHistoryItem(KeyValuePair<string, Migration> migration)
+        {
+            for (int i = migration.Value.Steps.Count - 1; i >= 0; i--)
+            {
+                yield return new SimpleMigrationHistoryItem(migration.Value.Name, i);
+            }
+        }
+
         private string GetHumanStateName(string state)
         {
             return state == null ? InitialState : state;

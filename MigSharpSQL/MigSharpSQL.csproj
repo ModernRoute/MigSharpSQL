@@ -22,7 +22,8 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>bin\Debug\MigSharpSQL.XML</DocumentationFile>
+    <DocumentationFile>
+    </DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -52,6 +53,8 @@
     <Compile Include="Logging\LoggerFactory.cs" />
     <Compile Include="Logging\NullLogger.cs" />
     <Compile Include="Migration.cs" />
+    <Compile Include="MigrationHistoryItem.cs" />
+    <Compile Include="MigrationStepTuple.cs" />
     <Compile Include="Migrator.cs" />
     <Compile Include="Processors\PostgreSqlMigrationProcessor.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -77,6 +80,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Strings.resx</DependentUpon>
     </Compile>
+    <Compile Include="SimpleMigrationHistoryItem.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Resources\LogStrings.ru.resx">

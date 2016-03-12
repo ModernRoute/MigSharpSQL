@@ -1,52 +1,43 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace MigSharpSQL
 {
-    /// <summary>
-    /// Represents the one migration.
-    /// </summary>
-    internal class Migration
+    public class Migration
     {
-        /// <summary>
-        /// Gets migration unique name.
-        /// </summary>
         public string Name
         {
             get;
             private set;
         }
 
-        /// <summary>
-        /// Full path to up script.
-        /// </summary>
-        public string UpScriptFullPath
+        public IReadOnlyList<MigrationStepTuple> Steps
         {
             get;
-            set;
+            private set;
         }
 
-        /// <summary>
-        /// Full path to down script.
-        /// </summary>
-        public string DownScriptFullPath
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of <see cref="Migration"/> class.
-        /// </summary>
-        /// <param name="name">Migration name.</param>
-        /// <exception cref="ArgumentNullException">If <paramref name="name"/> is null.</exception>
-        public Migration(string name)
+        public Migration(string name, IEnumerable<MigrationStepTuple> steps)
         {
             if (name == null)
             {
                 throw new ArgumentNullException(nameof(name));
             }
 
+            if (steps == null)
+            {
+                throw new ArgumentNullException(nameof(steps));
+            }
+
+            if (steps.Any(step => step == null))
+            {
+                throw new ArgumentException("", nameof(steps)); // TODO: message
+            }
+
             Name = name;
+            Steps = new ReadOnlyCollection<MigrationStepTuple>(steps.ToList());
         }
     }
 }

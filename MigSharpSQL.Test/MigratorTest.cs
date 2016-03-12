@@ -12,22 +12,37 @@ namespace MigSharpSQL.Test
         [Test]
         public void UnsupportedProvider_Fail()
         {
-            Assert.Throws<MigrationException>(() => new Migrator(Constants.MockConnectionString, "__UnsupportedProvider__", MockProcessor.ProcessorName, Constants.MigOk5));
+            Assert.Throws<MigrationException>(() => new Migrator(string.Empty, "__UnsupportedProvider__", MockProcessor.ProcessorName, Constants.MigOk5));
         }
 
         [Test]
         public void UnsupportedProcessor_Fail()
         {
-            Assert.Throws<MigrationException>(() => new Migrator(Constants.MockConnectionString, Constants.MockProviderName, "__UnsupportedProcessor__", Constants.MigOk5));            
+            Assert.Throws<MigrationException>(() => new Migrator(string.Empty, Constants.MockProviderName, "__UnsupportedProcessor__", Constants.MigOk5));
         }
 
-        protected Migrator CreateMigrator(string migrationBulk)
+        private string GetMigrationDirectory(string migrationBulk)
         {
-            string migDir = Path.Combine(Assembly.GetExecutingAssembly().GetDirectory(), Constants.MigrationDir, migrationBulk);
+            return Path.Combine(Assembly.GetExecutingAssembly().GetDirectory(), Constants.MigrationDir, migrationBulk);
+        }
 
-            Migrator mig = new Migrator(Constants.MockConnectionString, Constants.MockProviderName, MockProcessor.ProcessorName, migDir);
+        protected Migrator CreateMigrator(string currentState, int currentSubstate, string migrationBulk, string baseMigrationBulk)
+        {
+            string migDir = GetMigrationDirectory(migrationBulk);
+            string baseMigDir = GetMigrationDirectory(baseMigrationBulk);
+
+            Migrator mig = new Migrator(migrationBulk, Constants.MockProviderName, MockProcessor.ProcessorName, migDir);
+
+            MockDatabase database = MockDatabase.GetInstance(migrationBulk);
+
+            database.SetHistory(currentState, currentSubstate, Migrator.LoadMigrations(baseMigDir));
 
             return mig;
+        }
+
+        protected Migrator CreateMigrator(string currentState, int currentSubstate, string migrationBulk)
+        {
+            return CreateMigrator(currentState, currentSubstate, migrationBulk, migrationBulk);
         }
 
         protected void CheckState(Migrator mig, string expectedMigrationState, int expectedMigrationSubstate)
@@ -39,39 +54,30 @@ namespace MigSharpSQL.Test
             Assert.AreEqual(expectedMigrationSubstate, migrationSubstate);
         }
 
-        protected void DoAndVerifyMigration_Success(string currentState, int currentSubstate, string wantedState, 
-            int wantedSubstate, string migrationBulk)
+        protected void DoAndVerifyMigration_Success(string migrationBulk, string baseMigrationBulk, string currentState, int currentSubstate,
+            string wantedState)
         {
-            MockDbConnection.MigrationStateStatic = currentState;
-            MockDbConnection.MigrationSubstateStatic = currentSubstate;
-
-            Migrator mig = CreateMigrator(migrationBulk);
+            Migrator mig = CreateMigrator(currentState, currentSubstate, migrationBulk, baseMigrationBulk);
 
             mig.MigrateTo(wantedState);
 
-            CheckState(mig, wantedState, wantedSubstate);
+            CheckState(mig, wantedState, 0);
         }
 
-        protected void DoAndVerifyMigration_Fail(string currentState, int currentSubstate, string wantedState, 
-            string newState, int newSubstate)
+        protected void DoAndVerifyMigration_Success(string migrationBulk, string currentState, int currentSubstate, 
+            string wantedState)
         {
-            MockDbConnection.MigrationStateStatic = currentState;
-            MockDbConnection.MigrationSubstateStatic = currentSubstate;
+            DoAndVerifyMigration_Success(migrationBulk, migrationBulk, currentState, currentSubstate, wantedState);
+        }
 
-            Migrator mig = CreateMigrator(Constants.MigBadBothDirection5);
+        protected void DoAndVerifyMigration_Fail(string migrationBulk, string currentState, int currentSubstate,
+            string wantedState, string actualState, int actualSubstate)
+        {
+            Migrator mig = CreateMigrator(currentState, currentSubstate, migrationBulk);
 
-            try
-            {
-                mig.MigrateTo(wantedState);
+            Assert.Throws<MockDbException>(() => mig.MigrateTo(wantedState));
 
-                Assert.Fail("MockDbException was not thrown");
-            }
-            catch (MockDbException)
-            {
-                // ok
-            }
-
-            CheckState(mig, newState, newSubstate);
+            CheckState(mig, actualState, actualSubstate);
         }
     }
 }

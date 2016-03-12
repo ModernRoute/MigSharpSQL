@@ -1,4 +1,6 @@
-﻿using System.Data;
+﻿using System;
+using System.Collections.Generic;
+using System.Data;
 using System.Globalization;
 
 namespace MigSharpSQL.Processors
@@ -18,7 +20,7 @@ namespace MigSharpSQL.Processors
             get { return "Sqlite"; }
         }
 
-        public string GetState(IDbConnection connection, out int substate)
+        public string GetStateObsolete(IDbConnection connection, out int substate)
         {
             using (IDbCommand command = connection.CreateCommand())
             {
@@ -65,7 +67,7 @@ namespace MigSharpSQL.Processors
             }
         }
 
-        public void SetState(IDbConnection connection, IDbTransaction transaction, string state, int substate)
+        public void SetState(IDbConnection connection, IDbTransaction transaction, string state, int substate, bool isUp)
         {
             using (IDbCommand command = connection.CreateCommand())
             {
@@ -117,7 +119,27 @@ namespace MigSharpSQL.Processors
         {
             return str.Replace("\'","\'\'");
         }
-             
+
+        public IEnumerable<MigrationHistoryItem> EnumerateHistory(IDbConnection connection)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool CheckDeprecated(IDbConnection connection, IDbTransaction transaction)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void AddHistory(IDbConnection connection, IDbTransaction transaction, IEnumerable<SimpleMigrationHistoryItem> migrations)
+        {
+            throw new NotImplementedException();
+        }
+
+        public string GetState(IDbConnection connection, IDbTransaction transaction, out int substate)
+        {
+            throw new NotImplementedException();
+        }
+
         private const string _ViewExistsQuery = "SELECT COUNT(*) FROM sqlite_master " + 
             "WHERE type = 'view' AND name = '__MigrationState'";
         private const string _GetStateQuery = "SELECT `state`,`substate` FROM `__MigrationState`";

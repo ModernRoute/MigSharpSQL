@@ -72,7 +72,7 @@ namespace MigSharpSQL.Test.App
         public void EntryPoint_ProviderLessConnectionString_Fail()
         {
             int exitCode = ConsoleApp.EntryPoint(_ValidDirectoryKey, _ProviderLessConnectionStringKey, _ValidProcessorKey, _Args);
-
+                
             Assert.AreEqual(ConsoleApp.FailedMigrationExitCode, exitCode);
         }
 
