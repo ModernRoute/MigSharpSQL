@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>NomadData</id>
+    <version>0.1.5</version>
+    <title>NomadData</title>
+    <authors>ModernRoute Team</authors>
+    <licenseUrl>https://github.com/ModernRoute/NomadData/blob/0.1.5/COPYING</licenseUrl>
+    <projectUrl>http://github.com/ModernRoute/NomadData</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>.NET SQL-based database migrator</description>
+    <language />
+    <tags>NomadData Migration</tags>
+  </metadata>
+  <files>
+    <file src="..\NomadData\bin\Release\ModernRoute.NomadData.dll" target="lib\net40" />
+    <file src="..\NomadData\bin\Release\**\ModernRoute.NomadData.resources.dll" target="lib\net40" />
+  </files>  
+</package>
